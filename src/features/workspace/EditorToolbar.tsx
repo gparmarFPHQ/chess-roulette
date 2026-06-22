@@ -9,16 +9,16 @@
  */
 
 import { useCallback } from 'react';
-import type { Editor as TipTapEditor } from '@tiptap/react';
+import type { EditorInstance } from './Editor';
 
 export interface EditorToolbarProps {
-  editor: TipTapEditor | null;
+  editor: EditorInstance | null;
 }
 
 interface ToolbarButton {
   label: string;
-  command: (editor: TipTapEditor) => void;
-  isActive: (editor: TipTapEditor) => boolean;
+  command: (editor: EditorInstance) => void;
+  isActive: (editor: EditorInstance) => boolean;
   shortcut?: string;
   icon: string;
 }

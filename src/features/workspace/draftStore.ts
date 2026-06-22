@@ -11,13 +11,13 @@
  */
 
 import { create } from 'zustand';
-import type {
+import {
   Draft,
   DraftSettings,
   DraftTemplate,
   ExportFormat,
-  DEFAULT_SETTINGS,
 } from './types';
+import { DEFAULT_SETTINGS } from './types';
 import { getTemplate } from './templates';
 import {
   exportAsMarkdown,
@@ -32,7 +32,7 @@ const API_BASE = '/api';
 async function fetchDraft(caseId: string): Promise<Draft | null> {
   const res = await fetch(`${API_BASE}/cases/${encodeURIComponent(caseId)}/draft`);
   if (!res.ok) return null;
-  const data = await res.json();
+  const data: { draft?: { id: string; user_id: string; case_id: string; content: string; word_count: number; created_at: number; updated_at: number } | null } = await res.json();
   if (!data.draft) return null;
 
   // Map backend Draft to workspace Draft
@@ -56,7 +56,7 @@ async function saveDraftApi(caseId: string, content: string, wordCount: number):
     body: JSON.stringify({ content, word_count: wordCount }),
   });
   if (!res.ok) return null;
-  const data = await res.json();
+  const data: { draft?: { id: string; user_id: string; case_id: string; content: string; word_count: number; created_at: number; updated_at: number } | null } = await res.json();
   if (!data.draft) return null;
 
   const backend = data.draft;
@@ -117,6 +117,9 @@ interface DraftState {
   settings: DraftSettings;
   offlineQueue: Array<{ content: string; title: string }>;
 
+  // ── Autosave Timer ──
+  autosaveTimer: string | null;
+
   // ── Actions ──
   loadDraft: (caseId: string) => Promise<void>;
   saveDraft: (content: string, title: string) => Promise<void>;
@@ -143,6 +146,7 @@ export const useDraftStore = create<DraftState>((set, get) => ({
   hasUnsavedChanges: false,
   settings: DEFAULT_SETTINGS,
   offlineQueue: [],
+  autosaveTimer: null,
 
   // ── Load Draft ──
   loadDraft: async (caseId: string) => {
@@ -225,11 +229,14 @@ export const useDraftStore = create<DraftState>((set, get) => ({
 
     // Debounced autosave
     if (settings.autoSave) {
-      clearTimeout(get().autosaveTimer as unknown as number);
+      const currentTimer = get().autosaveTimer;
+      if (currentTimer) {
+        clearTimeout(Number(currentTimer));
+      }
       const timer = window.setTimeout(() => {
         get().saveDraft(content, title);
       }, settings.autoSaveInterval);
-      set({ autosaveTimer: timer as unknown as string });
+      set({ autosaveTimer: String(timer) });
     }
   },
 
@@ -262,7 +269,6 @@ export const useDraftStore = create<DraftState>((set, get) => ({
           title: templateData.title,
           wordCount,
           template,
-          hasUnsavedChanges: true,
         },
         hasUnsavedChanges: true,
       });

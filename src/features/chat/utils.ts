@@ -295,12 +295,13 @@ export function sortSessionsByActivity(sessions: ChatSession[]): ChatSession[] {
  * Get a short personality hint for hover display.
  */
 export function getPersonalityHint(persona: PersonaProfile): string {
-  if ('style' in persona.personality && typeof (persona.personality as any).style === 'string') {
-    return (persona.personality as { style: string }).style;
+  // PersonaProfile from personaEngine has personality as PersonaPersonality object
+  const personality = persona.personality as { style?: string; description?: string };
+  if (personality.style) {
+    return personality.style;
   }
-  if (typeof persona.personality === 'string') {
-    // Handle the ingestion module's string-based personality
-    const firstSentence = persona.personality.split('.')[0];
+  if (personality.description) {
+    const firstSentence = personality.description.split('.')[0];
     return firstSentence.length > 50 ? firstSentence.slice(0, 50) + '...' : firstSentence;
   }
   return '';

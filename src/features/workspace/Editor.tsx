@@ -14,21 +14,28 @@
  */
 
 import { useEffect, useMemo, useCallback } from 'react';
-import { useEditor, EditorContent, type Editor as TipTapEditor } from '@tiptap/react';
+import type React from 'react';
+import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
-import type { EditorProps } from './Editor';
 
-// Re-export for the type declaration file
-export { type EditorProps };
-export type { TipTapEditor as Editor };
+// Re-export editor type for consumers (renamed to avoid conflict with component)
+export type { Editor as EditorInstance } from '@tiptap/react';
+
+// ─── Props ──────────────────────────────────────────────────────
+
+export interface EditorProps {
+  content: string;
+  onChange: (content: string) => void;
+  placeholder?: string;
+  readOnly?: boolean;
+}
 
 export function Editor({ content, onChange, placeholder, readOnly = false }: EditorProps) {
   const extensions = useMemo(
     () => [
       StarterKit.configure({
         heading: { levels: [1, 2, 3] },
-        placeholder: false,
       }),
       Placeholder.configure({
         placeholder: placeholder || 'Start writing your proposal...',
@@ -58,7 +65,7 @@ export function Editor({ content, onChange, placeholder, readOnly = false }: Edi
   useEffect(() => {
     if (editor && content !== editor.getHTML()) {
       const currentSelection = editor.state.selection;
-      editor.commands.setContent(content, false);
+      editor.commands.setContent(content);
       // Restore selection if possible
       if (currentSelection) {
         editor.commands.setTextSelection(currentSelection);
