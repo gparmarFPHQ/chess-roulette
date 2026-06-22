@@ -4,7 +4,7 @@
 
 import { useMemo } from 'react';
 import { PieChart as RePieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import type { ExhibitData } from '../../types';
+import type { ExhibitData } from '../types';
 
 export interface PieChartProps {
   data: ExhibitData;

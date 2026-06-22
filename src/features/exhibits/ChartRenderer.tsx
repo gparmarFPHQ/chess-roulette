@@ -5,7 +5,7 @@
  */
 
 import { memo } from 'react';
-import type { Exhibit } from '../types';
+import type { Exhibit } from './types';
 import { BarChart, LineChart, PieChart, AreaChart } from './charts';
 
 export interface ChartRendererProps {

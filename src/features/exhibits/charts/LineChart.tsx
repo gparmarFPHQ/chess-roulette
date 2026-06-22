@@ -4,7 +4,7 @@
 
 import { useMemo } from 'react';
 import { LineChart as ReLineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import type { ExhibitData } from '../../types';
+import type { ExhibitData } from '../types';
 
 export interface LineChartProps {
   data: ExhibitData;

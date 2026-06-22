@@ -5,7 +5,7 @@
  * Clicking opens the exhibit detail modal.
  */
 
-import type { Exhibit } from '../types';
+import type { Exhibit } from './types';
 
 export interface ExhibitReferenceLinkProps {
   exhibitNumber: number;

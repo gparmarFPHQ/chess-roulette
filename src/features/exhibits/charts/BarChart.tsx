@@ -4,7 +4,7 @@
 
 import { useMemo } from 'react';
 import { BarChart as ReBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
-import type { ExhibitData } from '../../types';
+import type { ExhibitData } from '../types';
 
 export interface BarChartProps {
   data: ExhibitData;
