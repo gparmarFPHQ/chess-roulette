@@ -1,20 +1,54 @@
 /**
  * Chat routes: manage chat sessions and messages with personas.
+ *
+ * Updated to support multi-provider LLM calls with user-provided API keys.
  */
 
 import { Hono } from 'hono';
 import type { ChatSession, ChatMessage } from '../storageProvider';
 import type { BackendEnv } from '../types';
-import type { LLMClient, LLMRequest, LLMMessage } from '../utils/llmClient';
+import { callLLM, LLMProviderError, LLMApiKeyError } from '../utils/llmClient';
+import type { LLMProvider } from '../utils/providerDefaults';
+import { PROVIDER_DEFAULTS, getDefaultModel } from '../utils/providerDefaults';
+
+// ─── Request Types ──────────────────────────────────────────────
+
+export interface SendMessageRequest {
+  /** The user's message content. */
+  content: string;
+  /** Retrieved context chunks to include. */
+  context_chunks?: string[];
+  /** LLM provider to use (defaults to server config). */
+  provider?: LLMProvider;
+  /** User-provided API key for the chosen provider. */
+  apiKey?: string;
+  /** Model to use (falls back to provider default). */
+  model?: string;
+  /** Override to use mock provider. */
+  useMock?: boolean;
+  /** Sampling temperature. */
+  temperature?: number;
+  /** Maximum tokens. */
+  maxTokens?: number;
+}
 
 export interface ChatRoutesDeps {
-  llmClient: LLMClient;
+  /** Fabric API URL from env (for fabric provider resolution). */
+  fabricApiUrl?: string;
+  /** Fallback provider when client doesn't specify one. */
+  fallbackProvider?: LLMProvider;
+  /** Fallback API key from env when client doesn't provide one. */
+  fallbackApiKey?: string;
+  /** Fallback model from env. */
+  fallbackModel?: string;
 }
+
+// ─── Route Factory ──────────────────────────────────────────────
 
 export function createChatRoutes(deps: ChatRoutesDeps): Hono<BackendEnv> {
   const router = new Hono<BackendEnv>();
 
-  // GET /api/cases/:caseId/chat/sessions
+  // ── GET /api/cases/:caseId/chat/sessions ──────────────────────
   router.get('/sessions', async (c) => {
     const storage = c.get('storage');
     const user = c.get('user');
@@ -29,7 +63,7 @@ export function createChatRoutes(deps: ChatRoutesDeps): Hono<BackendEnv> {
     return c.json({ sessions });
   });
 
-  // POST /api/cases/:caseId/chat/sessions
+  // ── POST /api/cases/:caseId/chat/sessions ─────────────────────
   router.post('/sessions', async (c) => {
     const storage = c.get('storage');
     const user = c.get('user');
@@ -68,7 +102,7 @@ export function createChatRoutes(deps: ChatRoutesDeps): Hono<BackendEnv> {
     return c.json({ session: created }, 201);
   });
 
-  // GET /api/cases/:caseId/chat/sessions/:sessionId/messages
+  // ── GET /api/cases/:caseId/chat/sessions/:sessionId/messages ──
   router.get('/sessions/:sessionId/messages', async (c) => {
     const storage = c.get('storage');
     const user = c.get('user');
@@ -92,7 +126,7 @@ export function createChatRoutes(deps: ChatRoutesDeps): Hono<BackendEnv> {
     return c.json({ messages });
   });
 
-  // POST /api/cases/:caseId/chat/sessions/:sessionId/messages
+  // ── POST /api/cases/:caseId/chat/sessions/:sessionId/messages ─
   router.post('/sessions/:sessionId/messages', async (c) => {
     const storage = c.get('storage');
     const user = c.get('user');
@@ -111,10 +145,7 @@ export function createChatRoutes(deps: ChatRoutesDeps): Hono<BackendEnv> {
       );
     }
 
-    let body: {
-      content: string;
-      context_chunks?: string[];
-    };
+    let body: SendMessageRequest;
     try {
       body = await c.req.json();
     } catch {
@@ -148,21 +179,55 @@ export function createChatRoutes(deps: ChatRoutesDeps): Hono<BackendEnv> {
     // Build system prompt from persona
     const systemPrompt = buildPersonaSystemPrompt(session.persona_id);
 
-    // Call LLM
-    try {
-      const llmRequest: LLMRequest = {
-        systemPrompt,
-        userMessage: content,
-        contextChunks: context_chunks,
-        history: history
-          .filter((m: ChatMessage) => m.id !== userMessage.id) // Exclude the message we just saved
-          .map((m: ChatMessage) => ({
-            role: m.role as 'user' | 'assistant',
-            content: m.content,
-          })),
-      };
+    // ── Resolve provider settings ───────────────────────────────
 
-      const llmResponse = await deps.llmClient.chat(llmRequest);
+    const useMock = body.useMock === true;
+    const provider: LLMProvider = useMock
+      ? 'mock'
+      : (body.provider ?? deps.fallbackProvider ?? 'mock');
+
+    const apiKey = body.apiKey ?? deps.fallbackApiKey ?? '';
+    const model = body.model ?? getDefaultModel(provider);
+
+    // Build messages array from history
+    const messages = history
+      .filter((m: ChatMessage) => m.id !== userMessage.id) // Exclude the message we just saved
+      .map((m: ChatMessage) => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+      }));
+
+    // Append context chunks to the last user message
+    if (context_chunks && context_chunks.length > 0) {
+      const context = context_chunks
+        .map((chunk, i) => `--- Context ${i + 1} ---\n${chunk}`)
+        .join('\n\n');
+      const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user');
+      if (lastUserMsg) {
+        lastUserMsg.content = `${lastUserMsg.content}\n\n## Retrieved Context\n${context}`;
+      } else {
+        messages.push({ role: 'user', content: `${content}\n\n## Retrieved Context\n${context}` });
+      }
+    } else {
+      // Ensure the current user message is in the messages array
+      const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user');
+      if (!lastUserMsg) {
+        messages.push({ role: 'user', content });
+      }
+    }
+
+    // ── Call LLM ────────────────────────────────────────────────
+
+    try {
+      const llmResponse = await callLLM({
+        provider,
+        apiKey,
+        model,
+        systemPrompt,
+        messages,
+        temperature: body.temperature,
+        maxTokens: body.maxTokens,
+      }, deps.fabricApiUrl);
 
       // Save assistant message
       const assistantMessage: ChatMessage = {
@@ -177,8 +242,35 @@ export function createChatRoutes(deps: ChatRoutesDeps): Hono<BackendEnv> {
       return c.json({
         message: assistantMessage,
         usage: llmResponse.usage,
+        model: llmResponse.model,
+        provider: llmResponse.provider,
       });
-    } catch {
+    } catch (err) {
+      // Handle known LLM errors
+      if (err instanceof LLMApiKeyError) {
+        return c.json(
+          {
+            error: 'Unauthorized',
+            message: `Invalid or missing API key for provider: ${provider}`,
+          },
+          401
+        );
+      }
+
+      if (err instanceof LLMProviderError) {
+        const status = err.status ?? 502;
+        let message = 'Failed to get a response from the AI.';
+        if (status === 401) {
+          message = 'Invalid API key. Please check your key and try again.';
+        } else if (status === 429) {
+          message = 'Rate limit exceeded. Please wait and try again.';
+        } else if (status >= 500) {
+          message = 'The AI service is temporarily unavailable. Please try again later.';
+        }
+        return c.json({ error: 'LLM Error', message }, status);
+      }
+
+      // Unknown error
       c.header('X-LLM-Error', 'true');
       return c.json(
         {
@@ -192,6 +284,8 @@ export function createChatRoutes(deps: ChatRoutesDeps): Hono<BackendEnv> {
 
   return router;
 }
+
+// ─── Persona System Prompt Builder ──────────────────────────────
 
 /**
  * Build a system prompt based on the persona ID.
