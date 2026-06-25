@@ -2,7 +2,7 @@
 // MBA Case Study Platform — Chat Panel
 // ============================================================================
 // Main chat area with message list, typing indicator, and empty state.
-// Auto-scrolls to bottom on new messages.
+// Auto-scrolls to bottom on new messages. Includes AI settings button.
 // ============================================================================
 
 import { useRef, useEffect, useCallback, useMemo } from 'react';
@@ -12,6 +12,9 @@ import { Message } from './Message';
 import { ChatInput } from './ChatInput';
 import { PersonaInfoBanner } from './PersonaInfoBanner';
 import { SuggestedQuestions } from './SuggestedQuestions';
+import { AISettings } from './AISettings';
+import { useAIConfigStore } from './aiConfigStore';
+import { PROVIDER_LABELS } from './aiConfigTypes';
 
 interface ChatPanelProps {
   session: ChatSession | null;
@@ -39,6 +42,11 @@ export function ChatPanel({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const previousMessageCount = useRef(messages.length);
+
+  // AI config for mode badge
+  const { config, openSettings, isConfigured } = useAIConfigStore();
+  const isMockMode = config.useMockMode || config.provider === 'mock';
+  const isRealConfigured = isConfigured();
 
   // Auto-scroll to bottom on new messages
   const scrollToBottom = useCallback(() => {
@@ -117,12 +125,73 @@ export function ChatPanel({
 
   return (
     <div className="flex-1 flex flex-col min-w-0 bg-white">
-      {/* Persona Banner */}
-      <PersonaInfoBanner
-        persona={persona}
-        groundingInfo={groundingInfo}
-        onSwitchPersona={onSwitchPersona}
-      />
+      {/* Persona Banner with Settings Button */}
+      <div className="px-4 py-3 bg-white border-b border-gray-200 flex items-center gap-3">
+        {/* Mode Badge */}
+        <div className="flex items-center gap-2">
+          {isMockMode ? (
+            <span
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium text-amber-700 bg-amber-50 border border-amber-200"
+              role="status"
+              aria-label="Mock mode enabled"
+              title="Mock mode — responses generated locally without an API key"
+            >
+              <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.77 5.27a.75.75 0 00-1.22-.852l-.546.925a6.966 6.966 0 00-1.947 3.188 1 1 0 001.922.559 5.005 5.005 0 011.398-2.312l.4 1.2a1 1 0 001.908-.612l-.813-2.098zM8.25 8.75a.75.75 0 00-1.5 0v.75a.75.75 0 001.5 0v-.75zM6.5 12.75a.75.75 0 00-1.5 0v.75a.75.75 0 001.5 0v-.75z" />
+                <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 11-2 0 1 1 0 012 0z" />
+              </svg>
+              Mock Mode
+            </span>
+          ) : (
+            <span
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium text-green-700 bg-green-50 border border-green-200"
+              role="status"
+              aria-label={`Live AI mode with ${PROVIDER_LABELS[config.provider]}`}
+              title={`Live AI — ${PROVIDER_LABELS[config.provider]} / ${config.model}`}
+            >
+              <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
+              </svg>
+              {PROVIDER_LABELS[config.provider]}
+            </span>
+          )}
+
+          {/* Warning if real mode but no API key */}
+          {!isMockMode && !isRealConfigured && (
+            <span
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium text-red-700 bg-red-50 border border-red-200"
+              role="alert"
+              aria-label="API key not configured"
+            >
+              <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+              No API Key
+            </span>
+          )}
+        </div>
+
+        {/* Settings Button */}
+        <button
+          onClick={openSettings}
+          className="ml-auto p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300"
+          aria-label="Open AI settings"
+          title="AI Settings"
+        >
+          <svg
+            className="w-5 h-5"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              fillRule="evenodd"
+              d="M11.49 3.17c-.38-1.2-4.36-1.2-4.74 0l-.17.69a1.13 1.13 0 01-.8.72l-.69.18C-4.57 5.57-4.57 9.66.14 10.45l.69.18a1.13 1.13 0 01.8.72l.17.69c.38 1.2 4.36 1.2 4.74 0l.17-.69a1.13 1.13 0 01.8-.72l.69-.18c4.74-.79 4.74-4.87 0-5.66l-.69-.18a1.13 1.13 0 01-.8-.72l-.17-.69zM10 13a3 3 0 100-6 3 3 0 000 6z"
+              clipRule="evenodd"
+            />
+          </svg>
+        </button>
+      </div>
 
       {/* Messages Area */}
       <div
@@ -208,6 +277,9 @@ export function ChatPanel({
         disabled={isSending}
         placeholder={`Message ${persona.name.split(' ').pop()!}...`}
       />
+
+      {/* AI Settings Modal */}
+      <AISettings />
     </div>
   );
 }

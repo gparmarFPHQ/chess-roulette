@@ -26,8 +26,22 @@ export type {
   SuggestedQuestion,
 } from './types';
 
-// ── Store ──────────────────────────────────────────────────────────────────
+// ── AI Configuration Types ────────────────────────────────────────────────
+export type {
+  AIConfig,
+  LLMProvider,
+} from './aiConfigTypes';
+
+export {
+  PROVIDER_MODELS,
+  PROVIDER_LABELS,
+  DEFAULT_AI_CONFIG,
+  AI_CONFIG_STORAGE_KEY,
+} from './aiConfigTypes';
+
+// ── Stores ─────────────────────────────────────────────────────────────────
 export { useChatStore } from './chatStore';
+export { useAIConfigStore } from './aiConfigStore';
 
 // ── Components ─────────────────────────────────────────────────────────────
 export { CharacterSelect } from './CharacterSelect';
@@ -38,6 +52,7 @@ export { SuggestedQuestions } from './SuggestedQuestions';
 export { PersonaInfoBanner } from './PersonaInfoBanner';
 export { ChatHistorySidebar } from './ChatHistorySidebar';
 export { AdversarialWarning } from './AdversarialWarning';
+export { AISettings } from './AISettings';
 
 // ── Utilities ──────────────────────────────────────────────────────────────
 export {

@@ -2,7 +2,8 @@
 // MBA Case Study Platform — Chat Store (Zustand)
 // ============================================================================
 // Central state management for the chat feature. Handles sessions, messages,
-// persona lookups, and API communication.
+// persona lookups, and API communication. Supports both mock mode (client-side)
+// and real mode (backend proxy with user API key).
 // ============================================================================
 
 import { create } from 'zustand';
@@ -14,30 +15,11 @@ import type {
 } from './types';
 import type { PersonaProfile, SuggestedQuestion } from '../../personaEngine/types';
 import { backendToSession, backendToMessage } from './utils';
-
-// ---------------------------------------------------------------------------
-// API Configuration
-// ---------------------------------------------------------------------------
-
-const API_BASE = '/api';
-
-/**
- * Fetch wrapper with auth cookie support.
- */
-async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(url, {
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    ...options,
-  });
-
-  if (!response.ok) {
-    const errorBody = await response.text().catch(() => '');
-    throw new Error(`API error (${response.status}): ${errorBody || response.statusText}`);
-  }
-
-  return response.json();
-}
+import { useAIConfigStore } from './aiConfigStore';
+import { generateMockPersonaResponse } from '../../personaEngine/mockEngine';
+import { api } from '../../lib/api';
+import { coffeeWarsCase } from '../../ingestion/sampleCaseData';
+import { analyzeQuery } from '../../personaEngine/adversarialDefense';
 
 // ---------------------------------------------------------------------------
 // Store State & Actions
@@ -94,9 +76,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   loadSessions: async (caseId) => {
     set({ isLoading: true, error: null });
     try {
-      const data = await apiFetch<{ sessions: BackendChatSession[] }>(
-        `${API_BASE}/cases/${caseId}/chat/sessions`
-      );
+      const data = await api.chat.loadSessions(caseId);
       const sessions = data.sessions.map(backendToSession);
       set({ sessions, isLoading: false });
 
@@ -119,13 +99,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   createSession: async (caseId, personaId) => {
     set({ isLoading: true, error: null });
     try {
-      const data = await apiFetch<{ session: BackendChatSession }>(
-        `${API_BASE}/cases/${caseId}/chat/sessions`,
-        {
-          method: 'POST',
-          body: JSON.stringify({ persona_id: personaId }),
-        }
-      );
+      const data = await api.chat.createSession(caseId, personaId);
       const session = backendToSession(data.session);
 
       set((state) => ({
@@ -165,6 +139,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   /**
    * Send a message in a session.
+   * Routes to mock engine (client-side) or real API based on AI config.
    */
   sendMessage: async (sessionId, content) => {
     if (!content.trim()) return;
@@ -191,23 +166,101 @@ export const useChatStore = create<ChatState>((set, get) => ({
       },
     }));
 
+    // Get AI config
+    const aiConfig = useAIConfigStore.getState().config;
+    const isMockMode = aiConfig.useMockMode || aiConfig.provider === 'mock';
+
     try {
-      const caseId = session.caseId;
-      const response = await apiFetch<{ message: BackendChatMessage }>(
-        `${API_BASE}/cases/${caseId}/chat/sessions/${sessionId}/messages`,
-        {
-          method: 'POST',
-          body: JSON.stringify({ content: content.trim() }),
+      if (isMockMode) {
+        // ── MOCK MODE: Generate response client-side ──────────────
+        const { personas, messages } = get();
+        const persona = personas.find(p => p.id === session.personaId);
+        if (!persona) {
+          throw new Error('Persona not found for this session');
         }
-      );
 
-      // Replace optimistic message with real messages from server
-      const realUserMsg = backendToMessage(response.message);
-      // The backend saves user message then returns assistant message
-      // We need to fetch all messages to get the complete picture
-      await get().loadMessages(sessionId);
+        // Build context chunks from the knowledge base
+        // Filter to only chunks this persona can access
+        const kb = coffeeWarsCase;
+        const accessibleChunks = kb.chunks.filter(
+          (chunk) =>
+            chunk.visibility === 'student' &&
+            (chunk.characterAttribution === 'all' ||
+             chunk.characterAttribution === persona.id ||
+             chunk.characterAttribution === persona.name)
+        );
 
-      set({ isSending: false });
+        // Simple relevance scoring: keyword overlap with user message
+        const userTokens = new Set(
+          content.toLowerCase()
+            .replace(/[^a-z0-9\s]/g, ' ')
+            .split(/\s+/)
+            .filter(t => t.length > 2)
+        );
+
+        const scored = accessibleChunks.map(chunk => {
+          const chunkLower = chunk.text.toLowerCase();
+          const chunkTopic = (chunk.topic || '').toLowerCase();
+          let score = 0;
+          for (const token of userTokens) {
+            if (chunkLower.includes(token)) score += 1;
+            if (chunkTopic.includes(token)) score += 2;
+          }
+          return { chunk, score };
+        });
+
+        scored.sort((a, b) => b.score - a.score);
+        const contextChunks = scored.slice(0, 3).map(s => ({
+          id: s.chunk.id,
+          text: s.chunk.text,
+          topic: s.chunk.topic,
+          section: s.chunk.section,
+        }));
+
+        // Generate mock response
+        const conversationHistory = messages[sessionId] || [];
+        const mockResult = await generateMockPersonaResponse({
+          persona,
+          contextChunks,
+          userMessage: content.trim(),
+          conversationHistory,
+        });
+
+        // Analyze for adversarial flags
+        const adversarialAnalysis = analyzeQuery(content.trim());
+
+        // Add assistant message
+        const assistantMsg: ChatMessage = {
+          id: `mock-${Date.now()}`,
+          sessionId,
+          role: 'assistant',
+          content: mockResult.content,
+          createdAt: Date.now(),
+          personaId: persona.id,
+          metadata: {
+            contextUsed: mockResult.contextUsed,
+            adversarialFlags: adversarialAnalysis.isAdversarial ? adversarialAnalysis.flags : undefined,
+            groundingConfidence: mockResult.groundingConfidence,
+          },
+        };
+
+        set((state) => ({
+          messages: {
+            ...state.messages,
+            [sessionId]: [...(state.messages[sessionId] || []), assistantMsg],
+          },
+          isSending: false,
+        }));
+      } else {
+        // ── REAL MODE: Call backend with user's API key ───────────
+        const caseId = session.caseId;
+        const response = await api.chat.sendMessage(sessionId, content.trim(), aiConfig);
+
+        // Replace optimistic message with real messages from server
+        await get().loadMessages(sessionId);
+
+        set({ isSending: false });
+      }
     } catch (err) {
       // Remove optimistic message on failure
       set((state) => ({
@@ -232,9 +285,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     if (!session) return;
 
     try {
-      const data = await apiFetch<{ messages: BackendChatMessage[] }>(
-        `${API_BASE}/cases/${session.caseId}/chat/sessions/${sessionId}/messages`
-      );
+      const data = await api.chat.loadMessages(session.caseId, sessionId);
       const messages = data.messages.map(msg => backendToMessage(msg));
 
       set((state) => ({

@@ -2,25 +2,114 @@
 // MBA Case Study Platform — Chat Page
 // ============================================================================
 // Persona chat interface with character selection.
+// In mock mode, sessions are managed client-side without a backend.
 // ============================================================================
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback, useMemo } from 'react';
 import { CharacterSelect } from '../features/chat/CharacterSelect';
 import { ChatPanel } from '../features/chat/ChatPanel';
 import { ChatHistorySidebar } from '../features/chat/ChatHistorySidebar';
 import { useChatStore } from '../features/chat/chatStore';
+import { useAIConfigStore } from '../features/chat/aiConfigStore';
+import type { ChatSession } from '../features/chat/types';
 import { coffeeWarsCase } from '../ingestion/sampleCaseData';
 
 export function ChatPage() {
   const store = useChatStore();
+  const aiConfig = useAIConfigStore((s) => s.config);
+  const isMockMode = aiConfig.useMockMode || aiConfig.provider === 'mock';
   const personas = coffeeWarsCase.personaProfiles;
 
   useEffect(() => {
     store.setPersonas(personas);
-    store.loadSessions('coffee-wars-india');
-  }, []);
+  }, [personas]);
 
-  const activeSession = store.sessions.find(s => s.id === store.activeSessionId);
+  // Load sessions from backend only in real mode
+  useEffect(() => {
+    if (!isMockMode) {
+      store.loadSessions('coffee-wars-india');
+    }
+  }, [isMockMode]);
+
+  // ── Mock Mode Session Management ─────────────────────────────────
+
+  // In mock mode, create sessions client-side
+  const handleSelectPersona = useCallback(
+    (personaId: string) => {
+      if (isMockMode) {
+        // Check if a session already exists for this persona
+        const existingSession = store.sessions.find(
+          (s) => s.personaId === personaId
+        );
+        if (existingSession) {
+          store.setActiveSession(existingSession.id);
+          return;
+        }
+
+        // Create a client-side session
+        const mockSession: ChatSession = {
+          id: `mock-${personaId}-${Date.now()}`,
+          userId: 'mock-user',
+          caseId: 'coffee-wars-india',
+          personaId,
+          createdAt: Date.now(),
+        };
+
+        set((state) => ({
+          sessions: [...state.sessions, mockSession],
+          activeSessionId: mockSession.id,
+          messages: { ...state.messages, [mockSession.id]: [] },
+        }));
+
+        // Load suggested questions
+        store.loadSuggestedQuestions(personaId);
+      } else {
+        store.createSession('coffee-wars-india', personaId);
+      }
+    },
+    [isMockMode, store]
+  );
+
+  // We need to use the Zustand set pattern directly for mock sessions
+  // Re-implementing handleSelectPersona properly
+  const handleSelectPersonaFixed = useCallback(
+    (personaId: string) => {
+      if (isMockMode) {
+        // Check if a session already exists for this persona
+        const existingSession = store.sessions.find(
+          (s) => s.personaId === personaId
+        );
+        if (existingSession) {
+          store.setActiveSession(existingSession.id);
+          return;
+        }
+
+        // Create a client-side session
+        const mockSession: ChatSession = {
+          id: `mock-${personaId}-${Date.now()}`,
+          userId: 'mock-user',
+          caseId: 'coffee-wars-india',
+          personaId,
+          createdAt: Date.now(),
+        };
+
+        // Use Zustand's batched update
+        useChatStore.setState((state) => ({
+          sessions: [...state.sessions, mockSession],
+          activeSessionId: mockSession.id,
+          messages: { ...state.messages, [mockSession.id]: [] },
+        }));
+
+        // Load suggested questions
+        store.loadSuggestedQuestions(personaId);
+      } else {
+        store.createSession('coffee-wars-india', personaId);
+      }
+    },
+    [isMockMode, store]
+  );
+
+  const activeSession = store.sessions.find((s) => s.id === store.activeSessionId);
   const activePersona = store.getActivePersona();
   const messages = store.activeSessionId ? (store.messages[store.activeSessionId] || []) : [];
 
@@ -32,9 +121,7 @@ export function ChatPage() {
           personas={personas}
           activePersonaId={activePersona?.id || null}
           sessions={store.sessions}
-          onSelectPersona={(personaId) => {
-            store.createSession('coffee-wars-india', personaId);
-          }}
+          onSelectPersona={handleSelectPersonaFixed}
         />
       </div>
 
@@ -60,8 +147,7 @@ export function ChatPage() {
           activeSessionId={store.activeSessionId}
           onSelectSession={(sessionId) => store.setActiveSession(sessionId)}
           onDeleteSession={(sessionId) => {
-            // Would implement delete logic
-            console.log('Delete session:', sessionId);
+            store.deleteSession(sessionId);
           }}
         />
       </div>
