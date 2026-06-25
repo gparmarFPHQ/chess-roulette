@@ -1,7 +1,7 @@
 // ============================================================================
-// MBA Case Study Platform — Mock Persona Engine
+// MBA Case Study Platform - Mock Persona Engine
 // ============================================================================
-// Client-side mock response generator that doesn't need an API key or network.
+// Client-side mock response generator that does not need an API key or network.
 // Produces grounded, in-character responses using the case knowledge base.
 // ============================================================================
 
@@ -95,9 +95,9 @@ function generateAdversarialDeflection(persona: PersonaProfile): string {
   const role = persona.role;
 
   const deflections = [
-    `I'm ${name}, ${role}. I'm here to discuss the business case from my perspective. I can share what I know about the company and the industry — is there something specific you'd like to discuss?`,
+    `I'm ${name}, ${role}. I'm here to discuss the business case from my perspective. I can share what I know about the company and the industry -- is there something specific you'd like to discuss?`,
     `That's not something I can discuss. I'm ${name}, and I can only speak to what's in the case materials from my vantage point as ${role}. What would you like to know about the business?`,
-    `I appreciate the question, but I'm ${name} — I can only share what I would naturally know as ${role}. If you have questions about the company, strategy, or market, I'm happy to talk about those.`,
+    `I appreciate the question, but I'm ${name} -- I can only share what I would naturally know as ${role}. If you have questions about the company, strategy, or market, I'm happy to talk about those.`,
   ];
 
   return deflections[Math.floor(Math.random() * deflections.length)];
@@ -180,11 +180,11 @@ function generateGroundedResponse(
       const topicResponses: Record<string, string> = {
         'market entry': ' This is central to how we need to think about our strategy.',
         'competitive landscape': ' The competitive dynamics are what keep me up at night.',
-        'founder background': ' That's part of why I built this company the way I did.',
+        'founder background': ' That is part of why I built this company the way I did.',
         'founder vision': ' That vision drives everything we do.',
-        'strategic ambition': ' We have big ambitions, and we're working to realize them.',
+        'strategic ambition': ' We have big ambitions, and we are working to realize them.',
         'business model': ' Our business model is what gives us our edge.',
-        'store formats': ' We've designed our formats to reach every segment.',
+        'store formats': ' We have designed our formats to reach every segment.',
         'format strategy': ' Flexibility in our approach is key to our success.',
         'marketing': ' Marketing is how we connect with our customers.',
         'pricing philosophy': ' Our pricing reflects who our customers are.',
