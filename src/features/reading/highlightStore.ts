@@ -10,9 +10,8 @@ import type {
   Highlight,
   HighlightColor,
   ApiHighlight,
-  highlightToApiPayload,
 } from './types';
-import { DEFAULT_HIGHLIGHT_COLOR, apiHighlightToDomain } from './types';
+import { DEFAULT_HIGHLIGHT_COLOR, apiHighlightToDomain, highlightToApiPayload } from './types';
 
 // ---------------------------------------------------------------------------
 // API Client (abstracted for testability)

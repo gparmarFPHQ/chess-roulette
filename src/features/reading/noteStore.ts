@@ -10,9 +10,8 @@ import type {
   Note,
   NoteType,
   ApiNote,
-  noteToApiPayload,
-  apiNoteToDomain,
 } from './types';
+import { noteToApiPayload, apiNoteToDomain } from './types';
 
 // ---------------------------------------------------------------------------
 // API Client (abstracted for testability)
