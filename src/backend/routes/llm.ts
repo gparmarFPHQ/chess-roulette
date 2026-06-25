@@ -219,7 +219,7 @@ export function createLLMRoutes(deps: LLMProxyDeps): Hono<BackendEnv> {
           message = 'The AI service is temporarily unavailable. Please try again later.';
         }
 
-        return c.json({ error: 'LLM Error', message }, status);
+        return c.json({ error: 'LLM Error', message }, status as 401 | 403 | 429 | 502 | 503);
       }
 
       // Unknown error — don't leak internals
