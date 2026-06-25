@@ -92,7 +92,11 @@ export function ChatPage() {
         };
 
         // Create via store action
-        store.createMockSession(mockSession);
+        useChatStore.setState((state) => ({
+          sessions: [...state.sessions, mockSession],
+          activeSessionId: mockSession.id,
+          messages: { ...state.messages, [mockSession.id]: [] },
+        }));
 
         // Load suggested questions
         store.loadSuggestedQuestions(personaId);
