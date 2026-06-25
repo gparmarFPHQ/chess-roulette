@@ -25,6 +25,7 @@ export interface AppBindings {
   LLM_API_KEY: string;
   LLM_API_URL: string;
   LLM_MODEL: string;
+  DEFAULT_LLM_PROVIDER?: string;
 }
 
 // ─── App Factory ────────────────────────────────────────────────

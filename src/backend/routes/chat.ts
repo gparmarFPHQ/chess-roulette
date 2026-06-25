@@ -9,7 +9,7 @@ import type { ChatSession, ChatMessage } from '../storageProvider';
 import type { BackendEnv } from '../types';
 import { callLLM, LLMProviderError, LLMApiKeyError } from '../utils/llmClient';
 import type { LLMProvider } from '../utils/providerDefaults';
-import { PROVIDER_DEFAULTS, getDefaultModel } from '../utils/providerDefaults';
+import { getDefaultModel } from '../utils/providerDefaults';
 
 // ─── Request Types ──────────────────────────────────────────────
 
