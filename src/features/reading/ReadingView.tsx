@@ -6,7 +6,7 @@
 // ============================================================================
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { CaseChunk } from '../ingestion/types';
+import { CaseChunk } from '../../ingestion/types';
 import { useHighlightStore } from './highlightStore';
 import { useNoteStore } from './noteStore';
 import { HighlightToolbar } from './HighlightToolbar';
