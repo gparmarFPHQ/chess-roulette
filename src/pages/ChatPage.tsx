@@ -55,42 +55,6 @@ export function ChatPage() {
           createdAt: Date.now(),
         };
 
-        set((state) => ({
-          sessions: [...state.sessions, mockSession],
-          activeSessionId: mockSession.id,
-          messages: { ...state.messages, [mockSession.id]: [] },
-        }));
-
-        // Load suggested questions
-        store.loadSuggestedQuestions(personaId);
-      } else {
-        store.createSession('coffee-wars-india', personaId);
-      }
-    },
-    [isMockMode, store]
-  );
-
-  const handleSelectPersona = useCallback(
-    (personaId: string) => {
-      if (isMockMode) {
-        // Check if a session already exists for this persona
-        const existingSession = store.sessions.find(
-          (s) => s.personaId === personaId
-        );
-        if (existingSession) {
-          store.setActiveSession(existingSession.id);
-          return;
-        }
-
-        // Create a client-side session
-        const mockSession: ChatSession = {
-          id: `mock-${personaId}-${Date.now()}`,
-          userId: 'mock-user',
-          caseId: 'coffee-wars-india',
-          personaId,
-          createdAt: Date.now(),
-        };
-
         // Create via store action
         useChatStore.setState((state) => ({
           sessions: [...state.sessions, mockSession],
