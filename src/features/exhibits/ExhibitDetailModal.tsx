@@ -6,7 +6,7 @@
  */
 
 import { useEffect, useCallback, useMemo } from 'react';
-import type { Exhibit } from '../types';
+import type { Exhibit } from './types';
 import { DataTable } from './DataTable';
 import { ChartRenderer } from './ChartRenderer';
 import { Figure } from './Figure';

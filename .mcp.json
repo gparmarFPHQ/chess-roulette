@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "gmail": {
+      "args": [
+        "-y",
+        "@marlinjai/email-mcp"
+      ],
+      "command": "npx",
+      "env": {
+        "EMAIL_ADDRESS": "gurinder@farpointhq.com",
+        "EMAIL_PASSWORD": "lghtkjysdqhxegks",
+        "EMAIL_PROVIDER": "gmail"
+      },
+      "type": "stdio"
+    }
+  }
+}

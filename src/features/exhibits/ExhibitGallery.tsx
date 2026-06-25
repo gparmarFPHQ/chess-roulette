@@ -6,7 +6,7 @@
  */
 
 import { useMemo } from 'react';
-import type { Exhibit, ExhibitType } from '../types';
+import type { Exhibit, ExhibitType } from './types';
 
 export interface ExhibitGalleryProps {
   exhibits: Exhibit[];

@@ -5,7 +5,7 @@
  */
 
 import { useState, useMemo } from 'react';
-import type { ExhibitData } from '../types';
+import type { ExhibitData } from './types';
 
 export interface DataTableProps {
   data: ExhibitData;

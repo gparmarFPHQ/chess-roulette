@@ -17,22 +17,22 @@ import { CaseChunk, AttributionMode } from "./types";
  * that should not be visible to students during case discussions.
  */
 const INSTRUCTOR_PATTERNS: { pattern: RegExp; reason: string }[] = [
-  { pattern: /(?i)looking\s*ahead/, reason: "Looking Ahead section" },
-  { pattern: /(?i)discussion\s*question/, reason: "Discussion question" },
-  { pattern: /(?i)teaching\s*note/, reason: "Teaching note" },
-  { pattern: /(?i)case\s*teaching\s*note/, reason: "Case teaching note" },
-  { pattern: /(?i)learning\s*objective/, reason: "Learning objective" },
-  { pattern: /(?i)suggested\s*answer/, reason: "Suggested answer" },
-  { pattern: /(?i)recommended\s*response/, reason: "Recommended response" },
-  { pattern: /(?i)instructor\s*(only|guide|notes?)/, reason: "Instructor content" },
-  { pattern: /(?i)what\s+should\s+(siddhartha|ccd|the\s*company)\s+(do|consider)/, reason: "Strategic debate question" },
-  { pattern: /(?i)how\s+should\s+(siddhartha|ccd|management)\s+(respond|react|prepare)/, reason: "Strategic debate question" },
-  { pattern: /(?i)what\s+are\s+the\s+(key|main|critical)\s+(issues?|challenges?|factors?)/, reason: "Discussion framework" },
-  { pattern: /(?i)what\s+would\s+you\s+recommend/, reason: "Student prompt (instructor context)" },
-  { pattern: /(?i)evaluate\s+(the|ccd|siddhartha)/, reason: "Evaluation prompt" },
-  { pattern: /(?i)analyze\s+(the|ccd|siddhartha)/, reason: "Analysis prompt" },
-  { pattern: /(?i)debate\s*(question|topic|issue)/, reason: "Debate prompt" },
-  { pattern: /(?i)strategic\s*consideration/, reason: "Strategic consideration" },
+  { pattern: /looking\s*ahead/i, reason: "Looking Ahead section" },
+  { pattern: /discussion\s*question/i, reason: "Discussion question" },
+  { pattern: /teaching\s*note/i, reason: "Teaching note" },
+  { pattern: /case\s*teaching\s*note/i, reason: "Case teaching note" },
+  { pattern: /learning\s*objective/i, reason: "Learning objective" },
+  { pattern: /suggested\s*answer/i, reason: "Suggested answer" },
+  { pattern: /recommended\s*response/i, reason: "Recommended response" },
+  { pattern: /instructor\s*(only|guide|notes?)/i, reason: "Instructor content" },
+  { pattern: /what\s+should\s+(siddhartha|ccd|the\s*company)\s+(do|consider)/i, reason: "Strategic debate question" },
+  { pattern: /how\s+should\s+(siddhartha|ccd|management)\s+(respond|react|prepare)/i, reason: "Strategic debate question" },
+  { pattern: /what\s+are\s+the\s+(key|main|critical)\s+(issues?|challenges?|factors?)/i, reason: "Discussion framework" },
+  { pattern: /what\s+would\s+you\s+recommend/i, reason: "Student prompt (instructor context)" },
+  { pattern: /evaluate\s+(the|ccd|siddhartha)/i, reason: "Evaluation prompt" },
+  { pattern: /analyze\s+(the|ccd|siddhartha)/i, reason: "Analysis prompt" },
+  { pattern: /debate\s*(question|topic|issue)/i, reason: "Debate prompt" },
+  { pattern: /strategic\s*consideration/i, reason: "Strategic consideration" },
 ];
 
 /**

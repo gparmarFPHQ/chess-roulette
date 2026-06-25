@@ -1,32 +1,509 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>Hello, World!</title>
-	</head>
-	<body>
-		<h1 id="heading"></h1>
-		<p>This page comes from a static asset stored at `public/index.html` as configured in `wrangler.jsonc`.</p>
-		<button id="button" type="button">Fetch a random UUID</button>
-		<output id="random" for="button"></output>
-		<script>
-			fetch('/message')
-				.then((resp) => resp.text())
-				.then((text) => {
-					const h1 = document.getElementById('heading');
-					h1.textContent = text;
-				});
-
-			const button = document.getElementById("button");
-			button.addEventListener("click", () => {
-				fetch('/random')
-					.then((resp) => resp.text())
-					.then((text) => {
-						const random = document.getElementById('random');
-						random.textContent = text;
-					});
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Chess-Roulette - Live Chess</title>
+	<style>
+		* { box-sizing: border-box; margin: 0; padding: 0; }
+		body {
+			font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+			background: #1a1a2e;
+			color: #eee;
+			min-height: 100vh;
+			padding: 20px;
+		}
+		.container {
+			max-width: 900px;
+			margin: 0 auto;
+		}
+		h1 {
+			text-align: center;
+			margin-bottom: 20px;
+			color: #00d9ff;
+		}
+		.status-bar {
+			background: #16213e;
+			padding: 15px;
+			border-radius: 8px;
+			margin-bottom: 20px;
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+		.status-indicator {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+		}
+		.status-dot {
+			width: 12px;
+			height: 12px;
+			border-radius: 50%;
+			background: #666;
+		}
+		.status-dot.connected { background: #0f0; }
+		.status-dot.waiting { background: #ff0; }
+		.status-dot.playing { background: #00d9ff; }
+		.game-info {
+			background: #16213e;
+			padding: 15px;
+			border-radius: 8px;
+			margin-bottom: 20px;
+		}
+		.game-info.hidden { display: none; }
+		.board-container {
+			display: flex;
+			justify-content: center;
+			margin: 20px 0;
+		}
+		#board {
+			width: 400px;
+			height: 400px;
+		}
+		.controls {
+			display: flex;
+			gap: 10px;
+			justify-content: center;
+			margin: 20px 0;
+		}
+		button {
+			padding: 12px 24px;
+			font-size: 16px;
+			border: none;
+			border-radius: 6px;
+			cursor: pointer;
+			transition: all 0.2s;
+		}
+		button:disabled {
+			opacity: 0.5;
+			cursor: not-allowed;
+		}
+		.btn-primary {
+			background: #00d9ff;
+			color: #000;
+		}
+		.btn-primary:hover:not(:disabled) {
+			background: #00b8d9;
+		}
+		.message-log {
+			background: #0f0f23;
+			border-radius: 8px;
+			padding: 15px;
+			max-height: 300px;
+			overflow-y: auto;
+			font-family: monospace;
+			font-size: 13px;
+		}
+		.log-entry {
+			padding: 4px 0;
+			border-bottom: 1px solid #1a1a2e;
+		}
+		.log-entry:last-child { border-bottom: none; }
+		.log-entry.info { color: #888; }
+		.log-entry.success { color: #0f0; }
+		.log-entry.error { color: #f00; }
+		.log-entry.sent { color: #00d9ff; }
+		.log-entry.received { color: #ff0; }
+		.log-entry.system { color: #f0f; }
+		.timestamp {
+			color: #555;
+			margin-right: 8px;
+		}
+		.turn-indicator {
+			text-align: center;
+			padding: 10px;
+			background: #16213e;
+			border-radius: 6px;
+			margin: 10px 0;
+		}
+		.turn-indicator.your-turn {
+			background: #0a4d0a;
+			color: #0f0;
+		}
+		.notification {
+			position: fixed;
+			top: 20px;
+			right: 20px;
+			padding: 15px 20px;
+			background: #16213e;
+			border-radius: 8px;
+			border-left: 4px solid #00d9ff;
+			animation: slideIn 0.3s ease;
+			z-index: 1000;
+		}
+		.notification.error {
+			border-left-color: #f00;
+		}
+		.notification.success {
+			border-left-color: #0f0;
+		}
+		@keyframes slideIn {
+			from { transform: translateX(100%); opacity: 0; }
+			to { transform: translateX(0); opacity: 1; }
+		}
+		.hidden { display: none !important; }
+	</style>
+</head>
+<body>
+	<div class="container">
+		<h1>♟️ Chess-Roulette</h1>
+		
+		<div class="status-bar">
+			<div class="status-indicator">
+				<div class="status-dot" id="status-dot"></div>
+				<span id="status-text">Disconnected</span>
+			</div>
+			<div id="conn-info">Conn: <span id="conn-id">-</span></div>
+		</div>
+		
+		<div class="game-info hidden" id="game-info">
+			<div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+				<span id="player-color">-</span>
+				<span id="opponent-info">Opponent: -</span>
+			</div>
+			<div class="turn-indicator" id="turn-indicator">Waiting for opponent...</div>
+		</div>
+		
+		<div class="board-container">
+			<div id="board"></div>
+		</div>
+		
+		<div class="controls">
+			<button id="btn-play" class="btn-primary">Play</button>
+			<button id="btn-disconnect" disabled>Disconnect</button>
+		</div>
+		
+		<h3>Message Log</h3>
+		<div class="message-log" id="message-log">
+			<div class="log-entry info">
+				<span class="timestamp">[--:--:--]</span>
+				Ready. Click "Play" to join matchmaking queue.
+			</div>
+		</div>
+	</div>
+	
+	<script type="module">
+		import { connect, send, onMessage, isConnected, getConnId, disconnect } from '/client/connection.js';
+		import { Chess } from 'https://cdn.jsdelivr.net/npm/chess.js@1.0.0-beta.8/+esm';
+		import { Chessboard } from 'https://cdn.jsdelivr.net/npm/react-chessboard@4.7.2/+esm';
+		
+		// State
+		let gameState = {
+			inQueue: false,
+			inGame: false,
+			gameId: null,
+			color: null, // 'white' or 'black'
+			opponent: null,
+			fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+			localChess: new Chess(),
+		};
+		
+		// DOM Elements
+		const statusDot = document.getElementById('status-dot');
+		const statusText = document.getElementById('status-text');
+		const connIdEl = document.getElementById('conn-id');
+		const gameInfo = document.getElementById('game-info');
+		const playerColorEl = document.getElementById('player-color');
+		const opponentInfoEl = document.getElementById('opponent-info');
+		const turnIndicator = document.getElementById('turn-indicator');
+		const boardEl = document.getElementById('board');
+		const btnPlay = document.getElementById('btn-play');
+		const btnDisconnect = document.getElementById('btn-disconnect');
+		const messageLog = document.getElementById('message-log');
+		
+		// Render board using react-chessboard via CDN
+		function renderBoard() {
+			// For simplicity, we'll use a basic board rendering
+			// In production, you'd use React properly
+			renderSimpleBoard(gameState.fen, gameState.color);
+		}
+		
+		function renderSimpleBoard(fen, orientation) {
+			const pieces = {
+				'K': '♔', 'Q': '♕', 'R': '♖', 'B': '♗', 'N': '♘', 'P': '♙',
+				'k': '♚', 'q': '♛', 'r': '♜', 'b': '♝', 'n': '♞', 'p': '♟'
+			};
+			
+			const rows = fen.split(' ')[0].split('/');
+			let html = '<div style="display: grid; grid-template-columns: repeat(8, 50px); grid-template-rows: repeat(8, 50px); border: 3px solid #333;">';
+			
+			// Reverse rows if playing as black
+			const boardRows = orientation === 'black' ? rows.slice().reverse() : rows;
+			
+			for (let rowIdx = 0; rowIdx < 8; rowIdx++) {
+				const row = boardRows[rowIdx];
+				let col = 0;
+				
+				for (const char of row) {
+					if (/\d/.test(char)) {
+						col += parseInt(char);
+					} else {
+						const isLight = (rowIdx + col) % 2 === 0;
+						const piece = pieces[char] || '';
+						html += `<div style="
+							width: 50px; 
+							height: 50px; 
+							background: ${isLight ? '#f0d9b5' : '#b58863'};
+							display: flex;
+							align-items: center;
+							justify-content: center;
+							font-size: 36px;
+							cursor: pointer;
+						" data-square="${getSquareName(rowIdx, col, orientation)}">${piece}</div>`;
+						col++;
+					}
+				}
+			}
+			html += '</div>';
+			boardEl.innerHTML = html;
+			
+			// Add click handlers
+			boardEl.querySelectorAll('[data-square]').forEach(el => {
+				el.addEventListener('click', () => handleSquareClick(el.dataset.square));
 			});
-		</script>
-	</body>
+		}
+		
+		function getSquareName(rowIdx, col, orientation) {
+			const files = 'abcdefgh';
+			const ranks = '87654321';
+			
+			if (orientation === 'black') {
+				return files[7 - col] + ranks[7 - rowIdx];
+			} else {
+				return files[col] + ranks[rowIdx];
+			}
+		}
+		
+		let selectedSquare = null;
+		
+		function handleSquareClick(square) {
+			if (!gameState.inGame) return;
+			
+			const piece = gameState.localChess.get(square);
+			const isOwnPiece = piece && piece.color === (gameState.color === 'white' ? 'w' : 'b');
+			
+			if (selectedSquare) {
+				// Try to move
+				const move = {
+					from: selectedSquare,
+					to: square,
+					promotion: 'q' // Default to queen for simplicity
+				};
+				
+				// Check if this is a legal move
+				const legalMoves = gameState.localChess.moves({ square: selectedSquare, verbose: true });
+				const isLegal = legalMoves.some(m => m.to === square);
+				
+				if (isLegal) {
+					// Send move to server
+					send({ type: 'move', from: selectedSquare, to: square, promotion: 'q' });
+					log(`Sending move: ${selectedSquare} to ${square}`, 'sent');
+				}
+				
+				selectedSquare = null;
+				renderBoard();
+			} else if (isOwnPiece) {
+				selectedSquare = square;
+				renderBoard();
+				highlightSquare(square);
+			}
+		}
+		
+		function highlightSquare(square) {
+			const el = boardEl.querySelector(`[data-square="${square}"]`);
+			if (el) {
+				el.style.background = '#7b61ff';
+			}
+		}
+		
+		function updateStatus(status, dotClass) {
+			statusText.textContent = status;
+			statusDot.className = 'status-dot ' + (dotClass || '');
+		}
+		
+		function log(message, type = 'info') {
+			const time = new Date().toLocaleTimeString();
+			const entry = document.createElement('div');
+			entry.className = `log-entry ${type}`;
+			entry.innerHTML = `<span class="timestamp">[${time}]</span>${message}`;
+			messageLog.appendChild(entry);
+			messageLog.scrollTop = messageLog.scrollHeight;
+		}
+		
+		function showNotification(message, type = 'info') {
+			const existing = document.querySelector('.notification');
+			if (existing) existing.remove();
+			
+			const notif = document.createElement('div');
+			notif.className = `notification ${type}`;
+			notif.textContent = message;
+			document.body.appendChild(notif);
+			
+			setTimeout(() => notif.remove(), 3000);
+		}
+		
+		// WebSocket message handler
+		onMessage((msg) => {
+			log(`RECV: ${JSON.stringify(msg)}`, 'received');
+			
+			switch (msg.type) {
+				case 'connected':
+					connIdEl.textContent = msg.connId;
+					updateStatus('Connected', 'connected');
+					btnDisconnect.disabled = false;
+					break;
+					
+				case 'queued':
+					gameState.inQueue = true;
+					btnPlay.disabled = true;
+					btnPlay.textContent = 'Waiting...';
+					updateStatus('In Queue', 'waiting');
+					log(`Queued at position ${msg.position}`, 'system');
+					showNotification('Joined queue! Waiting for opponent...', 'info');
+					break;
+					
+				case 'matched':
+					gameState.inQueue = false;
+					gameState.inGame = true;
+					gameState.gameId = msg.gameId;
+					gameState.color = msg.color;
+					gameState.opponent = msg.opponent;
+					gameState.fen = msg.fen;
+					gameState.localChess.load(msg.fen);
+					
+					gameInfo.classList.remove('hidden');
+					playerColorEl.textContent = `You are ${msg.color.toUpperCase()}`;
+					opponentInfoEl.textContent = `Opponent: ${msg.opponent.slice(0, 15)}...`;
+					
+					btnPlay.textContent = 'Playing';
+					btnPlay.disabled = true;
+					updateStatus('Playing', 'playing');
+					
+					renderBoard();
+					updateTurnIndicator();
+					
+					log(`MATCHED! You are ${msg.color}`, 'success');
+					showNotification(`Game started! You are ${msg.color}`, 'success');
+					break;
+					
+				case 'move_made':
+					// Update local state from server
+					gameState.fen = msg.fen;
+					gameState.localChess.load(msg.fen);
+					renderBoard();
+					updateTurnIndicator();
+					log(`Move: ${msg.san || `${msg.from}-${msg.to}`}`, 'system');
+					break;
+					
+				case 'move_rejected':
+					showNotification(`Move rejected: ${msg.reason}`, 'error');
+					log(`Move rejected: ${msg.reason}`, 'error');
+					selectedSquare = null;
+					renderBoard();
+					break;
+					
+				case 'game_over':
+					gameState.inGame = false;
+					btnPlay.disabled = false;
+					btnPlay.textContent = 'Play Again';
+					updateStatus('Game Over', '');
+					
+					let resultMsg = `Game Over: ${msg.reason}`;
+					if (msg.winner) {
+						resultMsg += ` - ${msg.winner.toUpperCase()} wins!`;
+						if (msg.winner === gameState.color) {
+							showNotification('You won! 🎉', 'success');
+						} else {
+							showNotification('You lost', 'error');
+						}
+					} else {
+						resultMsg += ' - Draw';
+						showNotification('Draw!', 'info');
+					}
+					log(resultMsg, 'system');
+					break;
+					
+				case 'opponent_left':
+					gameState.inGame = false;
+					btnPlay.disabled = false;
+					btnPlay.textContent = 'Play Again';
+					updateStatus('Opponent Left', '');
+					showNotification('Opponent left the game', 'error');
+					log('Opponent left - game over', 'error');
+					break;
+					
+				case 'already_queued':
+				case 'already_in_game':
+					log(`Already ${msg.type.replace('already_', '')}`, 'error');
+					break;
+			}
+		});
+		
+		function updateTurnIndicator() {
+			if (!gameState.inGame) return;
+			
+			const turn = gameState.localChess.turn();
+			const isMyTurn = (gameState.color === 'white' && turn === 'w') || 
+			                 (gameState.color === 'black' && turn === 'b');
+			
+			if (isMyTurn) {
+				turnIndicator.textContent = "Your turn!";
+				turnIndicator.className = 'turn-indicator your-turn';
+			} else {
+				turnIndicator.textContent = `Waiting for ${gameState.color === 'white' ? 'Black' : 'White'}...`;
+				turnIndicator.className = 'turn-indicator';
+			}
+		}
+		
+		// Connect to WebSocket on page load
+		async function initConnection() {
+			try {
+				log('Connecting to WebSocket...', 'info');
+				await connect();
+				log('Connected!', 'success');
+			} catch (error) {
+				log(`Connection failed: ${error.message}`, 'error');
+			}
+		}
+		
+		initConnection();
+		
+		// Button handlers
+		btnPlay.addEventListener('click', () => {
+			if (!isConnected()) {
+				log('Not connected - reconnecting...', 'error');
+				initConnection();
+				return;
+			}
+			if (gameState.inQueue || gameState.inGame) return;
+			send({ type: 'join_queue' });
+			log('Joining queue...', 'sent');
+		});
+		
+		btnDisconnect.addEventListener('click', () => {
+			disconnect();
+			updateStatus('Disconnected', '');
+			connIdEl.textContent = '-';
+			btnDisconnect.disabled = true;
+			btnPlay.disabled = false;
+			btnPlay.textContent = 'Play';
+			gameInfo.classList.add('hidden');
+			gameState = {
+				inQueue: false,
+				inGame: false,
+				gameId: null,
+				color: null,
+				opponent: null,
+				fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+				localChess: new Chess(),
+			};
+			renderBoard();
+			log('Disconnected', 'info');
+		});
+		
+		// Initial render
+		renderBoard();
+	</script>
+</body>
 </html>

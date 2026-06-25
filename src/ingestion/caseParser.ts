@@ -42,18 +42,18 @@ export type SectionId = (typeof SECTION_IDS)[keyof typeof SECTION_IDS];
  * Ordered by specificity — more specific patterns first.
  */
 const SECTION_BOUNDARIES: { pattern: RegExp; sectionId: SectionId; isInstructorOnly: boolean }[] = [
-  { pattern: /(?i)looking\s*ahead/, sectionId: SECTION_IDS.LOOKING_AHEAD, isInstructorOnly: true },
-  { pattern: /(?i)exhibit\s*\d/, sectionId: SECTION_IDS.EXHIBITS, isInstructorOnly: false },
-  { pattern: /(?i)(starbucks|tata\s*starbucks)\s*(enters?|entry|arrival)/i, sectionId: SECTION_IDS.STARBUCKS_ENTRY, isInstructorOnly: false },
-  { pattern: /(?i)competitive\s*(landscape|environment|threat)/i, sectionId: SECTION_IDS.COMPETITIVE_LANDSCAPE, isInstructorOnly: false },
-  { pattern: /(?i)(financial|economics|cost|profit|revenue)/i, sectionId: SECTION_IDS.FINANCIAL_ANALYSIS, isInstructorOnly: false },
-  { pattern: /(?i)expansion\s*(strategy|plan|ambition)/i, sectionId: SECTION_IDS.EXPANSION_STRATEGY, isInstructorOnly: false },
-  { pattern: /(?i)customer\s*(demographic|segment|profile)/i, sectionId: SECTION_IDS.CUSTOMER_DEMOGRAPHICS, isInstructorOnly: false },
-  { pattern: /(?i)(operational|service\s*format|store\s*format)/i, sectionId: SECTION_IDS.OPERATIONAL_MODELS, isInstructorOnly: false },
-  { pattern: /(?i)market\s*(analysis|overview|size|growth)/i, sectionId: SECTION_IDS.MARKET_ANALYSIS, isInstructorOnly: false },
-  { pattern: /(?i)(ccd|caf?\e?\s*coffee\s*day)\s*(expands?|growth|expansion)/i, sectionId: SECTION_IDS.CCD_EXPANSION, isInstructorOnly: false },
-  { pattern: /(?i)(history|founding|background|origins?)/i, sectionId: SECTION_IDS.COMPANY_HISTORY, isInstructorOnly: false },
-  { pattern: /(?i)(industry|coffee\s*market|specialty\s*coffee)/i, sectionId: SECTION_IDS.INDUSTRY_OVERVIEW, isInstructorOnly: false },
+  { pattern: /looking\s*ahead/i, sectionId: SECTION_IDS.LOOKING_AHEAD, isInstructorOnly: true },
+  { pattern: /exhibit\s*\d/i, sectionId: SECTION_IDS.EXHIBITS, isInstructorOnly: false },
+  { pattern: /(starbucks|tata\s*starbucks)\s*(enters?|entry|arrival)/i, sectionId: SECTION_IDS.STARBUCKS_ENTRY, isInstructorOnly: false },
+  { pattern: /competitive\s*(landscape|environment|threat)/i, sectionId: SECTION_IDS.COMPETITIVE_LANDSCAPE, isInstructorOnly: false },
+  { pattern: /(financial|economics|cost|profit|revenue)/i, sectionId: SECTION_IDS.FINANCIAL_ANALYSIS, isInstructorOnly: false },
+  { pattern: /expansion\s*(strategy|plan|ambition)/i, sectionId: SECTION_IDS.EXPANSION_STRATEGY, isInstructorOnly: false },
+  { pattern: /customer\s*(demographic|segment|profile)/i, sectionId: SECTION_IDS.CUSTOMER_DEMOGRAPHICS, isInstructorOnly: false },
+  { pattern: /(operational|service\s*format|store\s*format)/i, sectionId: SECTION_IDS.OPERATIONAL_MODELS, isInstructorOnly: false },
+  { pattern: /market\s*(analysis|overview|size|growth)/i, sectionId: SECTION_IDS.MARKET_ANALYSIS, isInstructorOnly: false },
+  { pattern: /(ccd|caf?e?\s*coffee\s*day)\s*(expands?|growth|expansion)/i, sectionId: SECTION_IDS.CCD_EXPANSION, isInstructorOnly: false },
+  { pattern: /(history|founding|background|origins?)/i, sectionId: SECTION_IDS.COMPANY_HISTORY, isInstructorOnly: false },
+  { pattern: /(industry|coffee\s*market|specialty\s*coffee)/i, sectionId: SECTION_IDS.INDUSTRY_OVERVIEW, isInstructorOnly: false },
 ];
 
 // ---------------------------------------------------------------------------

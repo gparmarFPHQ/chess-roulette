@@ -12,34 +12,37 @@
 		"global_fetch_strictly_public"
 	],
 	"assets": {
-		// The path to the directory containing the `index.html` file to be served at `/`
-		"directory": "./public"
+		// The path to the directory containing the built Vite app
+		"directory": "./dist"
 	},
 	"observability": {
 		"enabled": true
 	},
-	"upload_source_maps": true
+	"upload_source_maps": true,
 	/**
-	 * Smart Placement
-	 * https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
+	 * Durable Objects Bindings
 	 */
-	// "placement": {  "mode": "smart" }
+	"durable_objects": {
+		"bindings": [
+			{
+				"name": "ChessGameDO",
+				"class_name": "ChessGameDO"
+			}
+		]
+	},
+	"migrations": [
+		{
+			"tag": "v1",
+			"new_sqlite_classes": [
+				"ChessGameDO"
+			]
+		}
+	],
 	/**
-	 * Bindings
-	 * Bindings allow your Worker to interact with resources on the Cloudflare Developer Platform, including
-	 * databases, object storage, AI inference, real-time communication and more.
-	 * https://developers.cloudflare.com/workers/runtime-apis/bindings/
+	 * ICE Server Configuration for WebRTC (STUN + TURN)
+	 * TURN credentials to be filled in as final step
 	 */
-	/**
-	 * Environment Variables
-	 * https://developers.cloudflare.com/workers/wrangler/configuration/#environment-variables
-	 * Note: Use secrets to store sensitive data.
-	 * https://developers.cloudflare.com/workers/configuration/secrets/
-	 */
-	// "vars": {  "MY_VARIABLE": "production_value" }
-	/**
-	 * Service Bindings (communicate between multiple Workers)
-	 * https://developers.cloudflare.com/workers/wrangler/configuration/#service-bindings
-	 */
-	// "services": [  {   "binding": "MY_SERVICE",   "service": "my-service"  } ]
+	"vars": {
+		"ICE_SERVERS": "{\"urls\":[\"stun:stun.cloudflare.com:3478\",\"turn:turn.cloudflare.com:3478\"],\"username\":\"PLACEHOLDER\",\"credential\":\"PLACEHOLDER\"}"
+	}
 }
