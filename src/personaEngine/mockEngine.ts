@@ -6,7 +6,7 @@
 // ============================================================================
 
 import type { PersonaProfile } from '../ingestion/types';
-import type { ChatMessage } from '../../features/chat/types';
+import type { ChatMessage } from '../features/chat/types';
 import { analyzeQuery } from './adversarialDefense';
 
 // ---------------------------------------------------------------------------
