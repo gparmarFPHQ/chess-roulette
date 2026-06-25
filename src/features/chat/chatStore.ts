@@ -14,6 +14,7 @@ import type {
   BackendChatMessage,
 } from './types';
 import type { PersonaProfile, SuggestedQuestion } from '../../personaEngine/types';
+import type { PersonaProfile as IngestionPersonaProfile } from '../../ingestion/types';
 import { backendToSession, backendToMessage } from './utils';
 import { useAIConfigStore } from './aiConfigStore';
 import { generateMockPersonaResponse } from '../../personaEngine/mockEngine';
@@ -219,8 +220,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
         // Generate mock response
         const conversationHistory = messages[sessionId] || [];
+        // Cast persona to ingestion type for mock engine compatibility
+        const mockPersona = persona as unknown as IngestionPersonaProfile;
         const mockResult = await generateMockPersonaResponse({
-          persona,
+          persona: mockPersona,
           contextChunks,
           userMessage: content.trim(),
           conversationHistory,
