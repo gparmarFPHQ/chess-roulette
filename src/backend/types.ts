@@ -19,5 +19,6 @@ export interface BackendEnv {
     LLM_API_KEY: string;
     LLM_API_URL: string;
     LLM_MODEL: string;
+    DEFAULT_LLM_PROVIDER: string;
   };
 }

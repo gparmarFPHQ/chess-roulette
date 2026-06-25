@@ -16,7 +16,7 @@ import { createNotesRoutes } from './routes/notes';
 import { createDraftsRoutes } from './routes/drafts';
 import { createChatRoutes } from './routes/chat';
 import { createLLMRoutes } from './routes/llm';
-import { LLMClient } from './utils/llmClient';
+import type { LLMProvider } from './utils/providerDefaults';
 
 // ─── Environment Types ──────────────────────────────────────────
 
@@ -37,11 +37,13 @@ export function createApp(env: AppBindings): Hono<BackendEnv> {
 
   // Initialize shared services
   const storage: StorageProvider = new D1StorageProvider(env.DB);
-  const llmClient = LLMClient.fromEnv({
-    LLM_API_KEY: env.LLM_API_KEY,
-    LLM_API_URL: env.LLM_API_URL,
-    LLM_MODEL: env.LLM_MODEL,
-  });
+
+  // LLM provider settings from env (used as fallbacks when client doesn't provide keys)
+  const fabricApiUrl = env.LLM_API_URL;
+  const fallbackApiKey = env.LLM_API_KEY;
+  const fallbackModel = env.LLM_MODEL;
+  const defaultProvider: LLMProvider =
+    (env.DEFAULT_LLM_PROVIDER as LLMProvider) ?? 'mock';
 
   // ── Global Middleware ─────────────────────────────────────────
 
@@ -87,12 +89,17 @@ export function createApp(env: AppBindings): Hono<BackendEnv> {
   const draftsRoutes = createDraftsRoutes();
   app.route('/api/cases/:caseId/draft', draftsRoutes);
 
-  const chatRoutes = createChatRoutes({ llmClient });
+  const chatRoutes = createChatRoutes({
+    fabricApiUrl,
+    fallbackProvider: defaultProvider,
+    fallbackApiKey,
+    fallbackModel,
+  });
   app.route('/api/cases/:caseId/chat', chatRoutes);
 
   // ── LLM Proxy (protected — requires auth) ─────────────────────
 
-  const llmRoutes = createLLMRoutes({ llmClient });
+  const llmRoutes = createLLMRoutes({ fabricApiUrl });
   app.route('/api/llm', llmRoutes);
 
   // ── Error Handler ─────────────────────────────────────────────
@@ -119,5 +126,5 @@ export function createApp(env: AppBindings): Hono<BackendEnv> {
 
 // ─── Exports ─────────────────────────────────────────────────────
 
-export { D1StorageProvider, LLMClient };
+export { D1StorageProvider };
 export type { StorageProvider, BackendEnv };

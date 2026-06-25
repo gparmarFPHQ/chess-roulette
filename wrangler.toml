@@ -22,9 +22,12 @@ database_id = "YOUR_DATABASE_ID"
 
 # Environment variables
 [vars]
-LLM_API_KEY = "YOUR_FABRIC_XLARGE_API_KEY"
+DEFAULT_LLM_PROVIDER = "mock"
 LLM_API_URL = "https://api.fabric.io/v1/chat/completions"
 LLM_MODEL = "xlarge"
+
+# LLM_API_KEY is set via `wrangler secret put LLM_API_KEY` for server-wide fallback.
+# Users can also provide their own API keys per-request via the frontend.
 
 # Observability
 [observability]
