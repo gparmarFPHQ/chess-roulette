@@ -14,7 +14,7 @@ import { WorkspacePage } from './pages/WorkspacePage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 
-export function App() {
+function App() {
   return (
     <BrowserRouter>
       <Routes>
@@ -36,3 +36,5 @@ export function App() {
     </BrowserRouter>
   );
 }
+
+export default App;
