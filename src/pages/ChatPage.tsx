@@ -70,9 +70,7 @@ export function ChatPage() {
     [isMockMode, store]
   );
 
-  // We need to use the Zustand set pattern directly for mock sessions
-  // Re-implementing handleSelectPersona properly
-  const handleSelectPersonaFixed = useCallback(
+  const handleSelectPersona = useCallback(
     (personaId: string) => {
       if (isMockMode) {
         // Check if a session already exists for this persona
@@ -93,12 +91,8 @@ export function ChatPage() {
           createdAt: Date.now(),
         };
 
-        // Use Zustand's batched update
-        useChatStore.setState((state) => ({
-          sessions: [...state.sessions, mockSession],
-          activeSessionId: mockSession.id,
-          messages: { ...state.messages, [mockSession.id]: [] },
-        }));
+        // Create via store action
+        store.createMockSession(mockSession);
 
         // Load suggested questions
         store.loadSuggestedQuestions(personaId);
@@ -121,7 +115,7 @@ export function ChatPage() {
           personas={personas}
           activePersonaId={activePersona?.id || null}
           sessions={store.sessions}
-          onSelectPersona={handleSelectPersonaFixed}
+          onSelectPersona={handleSelectPersona}
         />
       </div>
 
@@ -144,11 +138,13 @@ export function ChatPage() {
       <div className="w-64 bg-white border-l border-slate-200 overflow-y-auto hidden lg:block">
         <ChatHistorySidebar
           sessions={store.sessions}
+          personas={personas}
           activeSessionId={store.activeSessionId}
           onSelectSession={(sessionId) => store.setActiveSession(sessionId)}
           onDeleteSession={(sessionId) => {
             store.deleteSession(sessionId);
           }}
+          onNewSession={() => {}}
         />
       </div>
     </div>
