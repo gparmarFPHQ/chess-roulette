@@ -13,7 +13,7 @@ interface HighlightToolbarProps {
   position: { top: number; left: number };
   selectedColor: HighlightColor;
   onColorChange: (color: HighlightColor) => void;
-  onAddHighlight: () => void;
+  onAddHighlight: (color: HighlightColor) => void;
   onAddNote: () => void;
   onClose: () => void;
 }
@@ -70,9 +70,9 @@ export function HighlightToolbar({
   }, [onClose]);
 
   const handleAddHighlight = useCallback(() => {
-    onAddHighlight();
+    onAddHighlight(selectedColor);
     onClose();
-  }, [onAddHighlight, onClose]);
+  }, [onAddHighlight, onClose, selectedColor]);
 
   const handleAddNote = useCallback(() => {
     onAddNote();

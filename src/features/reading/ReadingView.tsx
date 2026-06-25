@@ -6,7 +6,7 @@
 // ============================================================================
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { CaseChunk } from '@/ingestion/types';
+import { CaseChunk } from '../ingestion/types';
 import { useHighlightStore } from './highlightStore';
 import { useNoteStore } from './noteStore';
 import { HighlightToolbar } from './HighlightToolbar';
@@ -14,7 +14,7 @@ import { HighlightsSidebar } from './HighlightsSidebar';
 import { TableOfContents } from './TableOfContents';
 import { ProgressIndicator } from './ProgressIndicator';
 import { serializeRange } from './rangeUtils';
-import { Highlight, Note } from './types';
+import { Highlight, Note, HighlightColor } from './types';
 
 interface ReadingViewProps {
   caseId: string;
@@ -95,7 +95,7 @@ export function ReadingView({ caseId, chunks }: ReadingViewProps) {
   }, [handleSelectionChange]);
 
   // Handle adding a highlight
-  const handleAddHighlight = async (color: string) => {
+  const handleAddHighlight = async (color: HighlightColor) => {
     const selection = window.getSelection();
     if (!selection || selection.isCollapsed) return;
 
@@ -214,7 +214,7 @@ export function ReadingView({ caseId, chunks }: ReadingViewProps) {
                 className={`relative ${chunk.visibility === 'instructor' ? 'opacity-60' : ''}`}
                 data-chunk-id={chunk.id}
               >
-                {chunk.text.split('\n\n').map((paragraph, pIndex) => (
+                {chunk.text.split('\n\n').map((paragraph: string, pIndex: number) => (
                   <p key={pIndex} className="mb-4">
                     {paragraph}
                   </p>
@@ -249,11 +249,8 @@ export function ReadingView({ caseId, chunks }: ReadingViewProps) {
         <aside className="w-80 border-l border-slate-200 bg-white overflow-y-auto hidden xl:block">
           <HighlightsSidebar
             highlights={highlightStore.highlights}
-            notes={noteStore.notes}
             onHighlightClick={handleScrollToHighlight}
-            onHighlightDelete={(id) => highlightStore.deleteHighlight(id)}
-            onNoteClick={(id) => {}}
-            onNoteDelete={(id) => noteStore.deleteNote(id)}
+            onHighlightDelete={(id: string) => highlightStore.deleteHighlight(id)}
           />
         </aside>
       )}
