@@ -19,10 +19,15 @@ import { ExhibitReference } from './ExhibitReference';
 import type { Exhibit } from '../../features/exhibits/types';
 import { ExhibitDetailModal } from '../../features/exhibits/ExhibitDetailModal';
 import { coffeeWarsCase } from '../../ingestion/sampleCaseData';
+import { X } from 'lucide-react';
 
 interface ReadingViewProps {
   caseId: string;
   chunks: CaseChunk[];
+  showTOC?: boolean;
+  showHighlights?: boolean;
+  onCloseTOC?: () => void;
+  onCloseHighlights?: () => void;
 }
 
 /** Regex to detect "Exhibit N" patterns in text */
@@ -40,15 +45,10 @@ function renderTextWithExhibitRefs(
   const result: React.ReactNode[] = [];
   let keyIndex = 0;
 
-  // split() produces: [before, fullMatch, group1, before, fullMatch, group1, ...]
-  // When a match is found: parts[i] = text before, parts[i+1] = full match, parts[i+2] = captured number
   for (let i = 0; i < parts.length; i++) {
     if (parts[i] === undefined || parts[i] === '') continue;
 
-    // Check if the next part is a captured group (the exhibit number)
-    // This means parts[i] was the full match "Exhibit N"
     if (i + 2 < parts.length && /^\d+$/.test(parts[i + 2] ?? '')) {
-      // parts[i] is the full match "Exhibit N", parts[i+2] is the number
       const exhibitNum = parseInt(parts[i + 2], 10);
       result.push(
         <ExhibitReference
@@ -57,10 +57,8 @@ function renderTextWithExhibitRefs(
           onOpenExhibit={onOpenExhibit}
         />
       );
-      // Skip the captured group since we already used it
       i += 2;
     } else {
-      // Plain text segment
       result.push(
         <span key={`text-${keyIndex++}`}>{parts[i]}</span>
       );
@@ -70,7 +68,7 @@ function renderTextWithExhibitRefs(
   return result;
 }
 
-export function ReadingView({ caseId, chunks }: ReadingViewProps) {
+export function ReadingView({ caseId, chunks, showTOC, showHighlights, onCloseTOC, onCloseHighlights }: ReadingViewProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const [selectedText, setSelectedText] = useState<string | null>(null);
   const [toolbarPosition, setToolbarPosition] = useState<{ top: number; left: number } | null>(null);
@@ -96,7 +94,6 @@ export function ReadingView({ caseId, chunks }: ReadingViewProps) {
   const sections = React.useMemo(() => {
     const extracted: Array<{ id: string; title: string; level: number; chunkId: string }> = [];
     chunks.forEach((chunk, index) => {
-      // Simple heuristic: chunks with short text (< 100 chars) are likely headings
       if (chunk.text.length < 100 && chunk.text.trim().endsWith(':')) {
         extracted.push({
           id: `chunk-${index}`,
@@ -131,7 +128,6 @@ export function ReadingView({ caseId, chunks }: ReadingViewProps) {
       return;
     }
 
-    // Check if selection is within our content area
     const range = selection.getRangeAt(0);
     if (!contentRef.current.contains(range.commonAncestorContainer)) {
       setSelectedText(null);
@@ -141,12 +137,11 @@ export function ReadingView({ caseId, chunks }: ReadingViewProps) {
 
     setSelectedText(selectedText);
 
-    // Calculate toolbar position (above the selection)
     const rect = range.getBoundingClientRect();
     const scrollTop = window.scrollY || document.documentElement.scrollTop;
     setToolbarPosition({
-      top: rect.top + scrollTop - 50, // 50px above selection
-      left: rect.left + rect.width / 2, // Center on selection
+      top: rect.top + scrollTop - 50,
+      left: rect.left + rect.width / 2,
     });
   }, []);
 
@@ -163,12 +158,11 @@ export function ReadingView({ caseId, chunks }: ReadingViewProps) {
     const range = selection.getRangeAt(0);
     const serialized = serializeRange(range);
 
-    // Find which chunk this selection belongs to
-    const chunkIndex = Math.floor((chunks.length * 0.5)); // Simplified - would need better logic
+    const chunkIndex = Math.floor((chunks.length * 0.5));
     const chunk = chunks[chunkIndex] || chunks[0];
 
     const highlight: Omit<Highlight, 'id' | 'createdAt' | 'updatedAt'> = {
-      userId: 'current-user', // Would come from auth context
+      userId: 'current-user',
       caseId,
       chunkId: chunk.id,
       textContent: selection.toString(),
@@ -213,7 +207,6 @@ export function ReadingView({ caseId, chunks }: ReadingViewProps) {
     const highlight = highlightStore.highlights.find(h => h.id === highlightId);
     if (!highlight) return;
 
-    // Find the element containing this highlight and scroll to it
     const highlightEl = contentRef.current?.querySelector(`[data-highlight-id="${highlightId}"]`);
     if (highlightEl) {
       highlightEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -238,15 +231,36 @@ export function ReadingView({ caseId, chunks }: ReadingViewProps) {
 
   // Calculate reading progress
   const progress = {
-    currentChunkIndex: 0, // Would track based on scroll position
+    currentChunkIndex: 0,
     totalChunks: chunks.length,
     scrollPercentage: 0,
   };
 
   return (
-    <div className="flex h-screen bg-cream-50">
+    <div className="flex flex-1 overflow-hidden bg-cream-50">
       {/* Left Sidebar - Table of Contents */}
-      <aside className="w-64 border-r border-slate-200 bg-white overflow-y-auto hidden lg:block">
+      {showTOC && (
+        <div className="fixed inset-0 z-40 lg:hidden" onClick={() => onCloseTOC?.()}>
+          <div className="absolute inset-0 bg-black/30" />
+        </div>
+      )}
+      <aside
+        className={`
+          w-64 border-r border-slate-200 bg-white overflow-y-auto flex-shrink-0
+          ${showTOC ? 'fixed inset-y-0 left-0 z-50 transform transition-transform lg:translate-x-0 lg:static lg:z-auto' : 'hidden lg:block'}
+          ${showTOC ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        `}
+      >
+        <div className="flex items-center justify-between p-4 border-b border-slate-200 lg:hidden">
+          <h2 className="font-semibold text-slate-900">Contents</h2>
+          <button
+            onClick={() => onCloseTOC?.()}
+            className="p-1.5 rounded-md text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+            aria-label="Close table of contents"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
         <TableOfContents
           sections={sections}
           activeSection={activeSection}
@@ -256,14 +270,17 @@ export function ReadingView({ caseId, chunks }: ReadingViewProps) {
               el.scrollIntoView({ behavior: 'smooth' });
               setActiveSection(sectionId);
             }
+            if (window.innerWidth < 1024) {
+              onCloseTOC?.();
+            }
           }}
         />
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto min-w-0">
         {/* Progress Indicator */}
-        <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b border-slate-200 px-8 py-3">
+        <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b border-slate-200 px-4 sm:px-8 py-3">
           <ProgressIndicator
             currentChunk={progress.currentChunkIndex + 1}
             totalChunks={progress.totalChunks}
@@ -273,7 +290,7 @@ export function ReadingView({ caseId, chunks }: ReadingViewProps) {
         {/* Reading Content */}
         <div
           ref={contentRef}
-          className="max-w-3xl mx-auto px-8 py-12 prose prose-slate prose-lg
+          className="max-w-3xl mx-auto px-4 sm:px-8 py-6 sm:py-12 prose prose-slate prose-lg
             prose-headings:font-serif prose-headings:font-semibold
             prose-p:font-serif prose-p:text-slate-800 prose-p:leading-relaxed
             prose-a:text-burgundy-700 prose-a:no-underline hover:prose-a:underline
@@ -311,7 +328,6 @@ export function ReadingView({ caseId, chunks }: ReadingViewProps) {
                     }`}
                     style={{
                       position: 'absolute',
-                      // Would need proper positioning logic based on anchor
                     }}
                   />
                 ))}
@@ -322,15 +338,34 @@ export function ReadingView({ caseId, chunks }: ReadingViewProps) {
       </main>
 
       {/* Right Sidebar - Highlights */}
-      {sidebarOpen && (
-        <aside className="w-80 border-l border-slate-200 bg-white overflow-y-auto hidden xl:block">
-          <HighlightsSidebar
-            highlights={highlightStore.highlights}
-            onHighlightClick={handleScrollToHighlight}
-            onHighlightDelete={(id: string) => highlightStore.deleteHighlight(id)}
-          />
-        </aside>
+      {showHighlights && (
+        <div className="fixed inset-0 z-40 xl:hidden" onClick={() => onCloseHighlights?.()}>
+          <div className="absolute inset-0 bg-black/30" />
+        </div>
       )}
+      <aside
+        className={`
+          w-80 border-l border-slate-200 bg-white overflow-y-auto flex-shrink-0
+          ${(showHighlights || sidebarOpen) ? 'fixed inset-y-0 right-0 z-50 transform transition-transform xl:translate-x-0 xl:static xl:z-auto' : 'hidden xl:block'}
+          ${(showHighlights || sidebarOpen) ? 'translate-x-0' : 'translate-x-full xl:translate-x-0'}
+        `}
+      >
+        <div className="flex items-center justify-between p-4 border-b border-slate-200 xl:hidden">
+          <h2 className="font-semibold text-slate-900">Highlights</h2>
+          <button
+            onClick={() => onCloseHighlights?.()}
+            className="p-1.5 rounded-md text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+            aria-label="Close highlights"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <HighlightsSidebar
+          highlights={highlightStore.highlights}
+          onHighlightClick={handleScrollToHighlight}
+          onHighlightDelete={(id: string) => highlightStore.deleteHighlight(id)}
+        />
+      </aside>
 
       {/* Highlight Toolbar (appears on text selection) */}
       {toolbarPosition && selectedText && (
