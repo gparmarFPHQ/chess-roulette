@@ -10,6 +10,7 @@ import { useHighlightStore } from '../features/reading/highlightStore';
 import { useNoteStore } from '../features/reading/noteStore';
 import { HighlightColor, HIGHLIGHT_COLORS } from '../features/reading/types';
 import { Search, Filter, ArrowLeft } from 'lucide-react';
+import { Navigation } from '../components/layout/Navigation';
 
 export function NotesPage() {
   const navigate = useNavigate();
@@ -143,6 +144,9 @@ export function NotesPage() {
           </div>
         </div>
       </main>
+
+      {/* Mobile bottom navigation */}
+      <Navigation mobileOnly />
     </div>
   );
 }
