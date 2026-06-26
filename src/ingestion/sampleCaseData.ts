@@ -651,7 +651,7 @@ const exhibits: Exhibit[] = [
     },
         caption: 'Coffee production in India has grown steadily, with exports accounting for about 70% of output.',
         source: 'National Coffee Promotion Council, India',
-        pageNumber: 15,
+
   },
   {
         id: 'exhibit-2',
@@ -695,7 +695,7 @@ const exhibits: Exhibit[] = [
     },
         caption: 'CCD dominates by store count, while international chains target premium segments.',
         source: 'Company filings and industry reports',
-        pageNumber: 15,
+
   },
   {
         id: 'exhibit-3',
@@ -719,7 +719,7 @@ const exhibits: Exhibit[] = [
     },
         caption: 'Europe and North America remain the largest coffee-consuming regions, but Asia Pacific is the fastest-growing.',
         source: 'International Coffee Organization',
-        pageNumber: 16,
+
   },
   {
         id: 'exhibit-4',
@@ -778,7 +778,7 @@ const exhibits: Exhibit[] = [
     },
         caption: 'CCD cafés operate on thin margins but keep costs low through vertical integration and low labor costs.',
         source: 'CCD management estimates',
-        pageNumber: 16,
+
   },
   {
         id: 'exhibit-5',
@@ -789,7 +789,7 @@ const exhibits: Exhibit[] = [
         imageUrl: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=800&h=600&fit=crop',
         caption: 'CCD Square lounges target a more premium customer segment with larger spaces and upgraded interiors.',
         source: 'Coffee Day Enterprises',
-        pageNumber: 17,
+
   },
   {
         id: 'exhibit-6',
@@ -800,7 +800,7 @@ const exhibits: Exhibit[] = [
         imageUrl: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=800&h=600&fit=crop',
         caption: 'The Square format offers premium food and beverages in a more upscale setting.',
         source: 'Coffee Day Enterprises',
-        pageNumber: 17,
+
   },
   {
         id: 'exhibit-7',
@@ -842,7 +842,7 @@ const exhibits: Exhibit[] = [
     },
         caption: 'CCD uses multiple formats to reach different locations and customer segments.',
         source: 'Coffee Day Enterprises',
-        pageNumber: 18,
+
   },
   {
         id: 'exhibit-8',
@@ -886,7 +886,7 @@ const exhibits: Exhibit[] = [
     },
         caption: 'Starbucks had more than 17,000 stores worldwide by fiscal 2011.',
         source: 'Starbucks Corporation Annual Report 2011',
-        pageNumber: 18,
+
   },
   {
         id: 'exhibit-9',
@@ -930,7 +930,7 @@ const exhibits: Exhibit[] = [
     },
         caption: 'Starbucks recovered strongly from the 2008 downturn with rising revenues and profitability.',
         source: 'Starbucks Corporation Annual Reports',
-        pageNumber: 19,
+
   },
   {
         id: 'exhibit-10',
@@ -953,7 +953,7 @@ const exhibits: Exhibit[] = [
     },
         caption: 'The vast majority of Starbucks revenue comes from company-operated stores.',
         source: 'Starbucks Corporation Annual Report 2011',
-        pageNumber: 19,
+
   },
   {
         id: 'exhibit-11',
@@ -987,7 +987,7 @@ const exhibits: Exhibit[] = [
     },
         caption: 'CCD relies more on food, while Starbucks derives most revenue from beverages.',
         source: 'Industry analysis',
-        pageNumber: 20,
+
   },
   {
         id: 'exhibit-12',
@@ -1017,7 +1017,7 @@ const exhibits: Exhibit[] = [
     },
         caption: 'The Tata partnership gives Starbucks access to premium real estate and brand credibility.',
         source: 'Tata Group public information',
-        pageNumber: 20,
+
   },
   {
         id: 'exhibit-13',
@@ -1028,7 +1028,7 @@ const exhibits: Exhibit[] = [
         imageUrl: 'https://images.unsplash.com/photo-1559496417-e73224229177?w=800&h=600&fit=crop',
         caption: 'Starbucks entered India through a 50:50 joint venture with Tata Global Beverages.',
         source: 'Starbucks Corporation',
-        pageNumber: 21,
+
   },
   {
         id: 'exhibit-14',
@@ -1054,7 +1054,7 @@ const exhibits: Exhibit[] = [
     },
         caption: 'India has a young population, making youth-oriented brands strategically important.',
         source: 'Census of India 2011, projected',
-        pageNumber: 21,
+
   }
 ];
 
