@@ -1,86 +1,89 @@
 // ============================================================================
 // MBA Case Study Platform — Note Store
 // ============================================================================
-// Zustand store for managing notes with server sync.
+// Zustand store for managing notes with localStorage persistence.
 // Handles inline, margin, and freeform notes.
+// Data persists across page reloads via localStorage.
 // ============================================================================
 
 import { create } from 'zustand';
 import type {
   Note,
   NoteType,
-  ApiNote,
+  SerializedRange,
 } from './types';
-import { noteToApiPayload, apiNoteToDomain } from './types';
+import { getDefaultStorageProvider, DEMO_USER_ID } from '../../lib/localStorageProvider';
+import { generateId } from '../../lib/idUtils';
 
 // ---------------------------------------------------------------------------
-// API Client (abstracted for testability)
+// Backend ↔ Domain Type Mapping
 // ---------------------------------------------------------------------------
 
 /**
- * API client interface for note operations.
+ * Map backend Note (snake_case) to domain Note (camelCase).
  */
-interface NoteApiClient {
-  getNotes(caseId: string): Promise<ApiNote[]>;
-  createNote(caseId: string, payload: {
-    chunk_id?: string | null;
-    anchor_start?: string | null;
-    anchor_end?: string | null;
-    content: string;
-    note_type: NoteType;
-  }): Promise<ApiNote>;
-  updateNote(caseId: string, id: string, updates: Partial<ApiNote>): Promise<ApiNote>;
-  deleteNote(caseId: string, id: string): Promise<void>;
+function backendToDomain(n: {
+  id: string;
+  user_id: string;
+  case_id: string;
+  chunk_id: string | null;
+  anchor_start: string | null;
+  anchor_end: string | null;
+  content: string;
+  note_type: NoteType;
+  created_at: number;
+  updated_at: number;
+}): Note {
+  return {
+    id: n.id,
+    userId: n.user_id,
+    caseId: n.case_id,
+    chunkId: n.chunk_id ?? undefined,
+    anchorStart: n.anchor_start ? parseSerializedRange(n.anchor_start) : undefined,
+    anchorEnd: n.anchor_end ? parseSerializedRange(n.anchor_end) : undefined,
+    content: n.content,
+    noteType: n.note_type,
+    createdAt: n.created_at,
+    updatedAt: n.updated_at,
+  };
 }
 
 /**
- * Default API client using fetch.
+ * Map domain Note to backend shape for storage.
  */
-const BASE_URL = '/api';
+function domainToBackend(n: Note): {
+  id: string;
+  user_id: string;
+  case_id: string;
+  chunk_id: string | null;
+  anchor_start: string | null;
+  anchor_end: string | null;
+  content: string;
+  note_type: NoteType;
+  created_at: number;
+  updated_at: number;
+} {
+  return {
+    id: n.id,
+    user_id: n.userId,
+    case_id: n.caseId,
+    chunk_id: n.chunkId ?? null,
+    anchor_start: n.anchorStart ? JSON.stringify(n.anchorStart) : null,
+    anchor_end: n.anchorEnd ? JSON.stringify(n.anchorEnd) : null,
+    content: n.content,
+    note_type: n.noteType,
+    created_at: n.createdAt,
+    updated_at: n.updatedAt,
+  };
+}
 
-const defaultApiClient: NoteApiClient = {
-  async getNotes(caseId: string): Promise<ApiNote[]> {
-    const res = await fetch(`${BASE_URL}/cases/${encodeURIComponent(caseId)}/notes`);
-    if (!res.ok) throw new Error(`Failed to fetch notes: ${res.status}`);
-    const data = await res.json() as { notes?: ApiNote[] };
-    return data.notes || [];
-  },
-
-  async createNote(caseId: string, payload: {
-    chunk_id?: string | null;
-    anchor_start?: string | null;
-    anchor_end?: string | null;
-    content: string;
-    note_type: NoteType;
-  }): Promise<ApiNote> {
-    const res = await fetch(`${BASE_URL}/cases/${encodeURIComponent(caseId)}/notes`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) throw new Error(`Failed to create note: ${res.status}`);
-    const data = await res.json() as { note: ApiNote };
-    return data.note;
-  },
-
-  async updateNote(caseId: string, id: string, updates: Partial<ApiNote>): Promise<ApiNote> {
-    const res = await fetch(`${BASE_URL}/cases/${encodeURIComponent(caseId)}/notes/${encodeURIComponent(id)}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updates),
-    });
-    if (!res.ok) throw new Error(`Failed to update note: ${res.status}`);
-    const data = await res.json() as { note: ApiNote };
-    return data.note;
-  },
-
-  async deleteNote(caseId: string, id: string): Promise<void> {
-    const res = await fetch(`${BASE_URL}/cases/${encodeURIComponent(caseId)}/notes/${encodeURIComponent(id)}`, {
-      method: 'DELETE',
-    });
-    if (!res.ok) throw new Error(`Failed to delete note: ${res.status}`);
-  },
-};
+function parseSerializedRange(raw: string): SerializedRange {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return { textQuote: '', prefix: '', suffix: '', offset: 0 };
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Store Definition
@@ -124,10 +127,13 @@ interface NoteState {
   getNotesByType: (type: NoteType) => Note[];
   getAnchoredNotes: () => Note[];
   getFreeformNotes: () => Note[];
-
-  // ── Internal ──────────────────────────────────────────────────
-  _setApiClient: (client: NoteApiClient) => void;
 }
+
+// ---------------------------------------------------------------------------
+// Storage Provider (singleton)
+// ---------------------------------------------------------------------------
+
+const storage = getDefaultStorageProvider();
 
 // ---------------------------------------------------------------------------
 // Store Creation
@@ -142,18 +148,12 @@ export const useNoteStore = create<NoteState>((set, get) => ({
   editingNote: null,
   newNoteAnchor: null,
 
-  // ── API Client (mutable for testing) ──────────────────────────
-  _setApiClient: (client: NoteApiClient) => {
-    Object.assign(get(), { _apiClient: client });
-  },
-
   // ── Load Notes ────────────────────────────────────────────────
   loadNotes: async (caseId: string) => {
     set({ isLoading: true, error: null, currentCaseId: caseId });
     try {
-      const api = (get() as NoteState & { _apiClient?: NoteApiClient })._apiClient ?? defaultApiClient;
-      const apiNotes = await api.getNotes(caseId);
-      const notes = apiNotes.map(apiNoteToDomain);
+      const backendNotes = await storage.getNotes(DEMO_USER_ID, caseId);
+      const notes = backendNotes.map(backendToDomain);
       set({ notes, isLoading: false });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load notes';
@@ -169,12 +169,23 @@ export const useNoteStore = create<NoteState>((set, get) => ({
       throw new Error('No case loaded. Call loadNotes first.');
     }
 
-    const api = (get() as NoteState & { _apiClient?: NoteApiClient })._apiClient ?? defaultApiClient;
-    const payload = noteToApiPayload(note);
+    const now = Date.now();
+    const backendNote = domainToBackend({
+      id: generateId(),
+      userId: DEMO_USER_ID,
+      caseId: currentCaseId,
+      chunkId: note.chunkId,
+      anchorStart: note.anchorStart,
+      anchorEnd: note.anchorEnd,
+      content: note.content,
+      noteType: note.noteType,
+      createdAt: now,
+      updatedAt: now,
+    });
 
     try {
-      const apiNote = await api.createNote(currentCaseId, payload);
-      const domainNote = apiNoteToDomain(apiNote);
+      const saved = await storage.createNote(backendNote);
+      const domainNote = backendToDomain(saved);
       set((state) => ({
         notes: [...state.notes, domainNote],
       }));
@@ -193,19 +204,23 @@ export const useNoteStore = create<NoteState>((set, get) => ({
       throw new Error('No case loaded.');
     }
 
-    const api = (get() as NoteState & { _apiClient?: NoteApiClient })._apiClient ?? defaultApiClient;
-
-    // Convert domain updates to API format
-    const apiUpdates: Partial<ApiNote> = {};
-    if (updates.content) apiUpdates.content = updates.content;
-    if (updates.noteType) apiUpdates.note_type = updates.noteType;
-    if (updates.chunkId !== undefined) apiUpdates.chunk_id = updates.chunkId ?? null;
-    if (updates.anchorStart) apiUpdates.anchor_start = JSON.stringify(updates.anchorStart);
-    if (updates.anchorEnd) apiUpdates.anchor_end = JSON.stringify(updates.anchorEnd);
+    // Convert domain updates to backend format
+    const backendUpdates: Partial<{
+      content: string;
+      note_type: NoteType;
+      chunk_id: string | null;
+      anchor_start: string | null;
+      anchor_end: string | null;
+    }> = {};
+    if (updates.content) backendUpdates.content = updates.content;
+    if (updates.noteType) backendUpdates.note_type = updates.noteType;
+    if (updates.chunkId !== undefined) backendUpdates.chunk_id = updates.chunkId ?? null;
+    if (updates.anchorStart) backendUpdates.anchor_start = JSON.stringify(updates.anchorStart);
+    if (updates.anchorEnd) backendUpdates.anchor_end = JSON.stringify(updates.anchorEnd);
 
     try {
-      const apiNote = await api.updateNote(currentCaseId, id, apiUpdates);
-      const domainNote = apiNoteToDomain(apiNote);
+      const updatedBackend = await storage.updateNote(id, DEMO_USER_ID, backendUpdates);
+      const domainNote = backendToDomain(updatedBackend);
       set((state) => ({
         notes: state.notes.map((n) => (n.id === id ? domainNote : n)),
       }));
@@ -224,10 +239,8 @@ export const useNoteStore = create<NoteState>((set, get) => ({
       throw new Error('No case loaded.');
     }
 
-    const api = (get() as NoteState & { _apiClient?: NoteApiClient })._apiClient ?? defaultApiClient;
-
     try {
-      await api.deleteNote(currentCaseId, id);
+      await storage.deleteNote(id, DEMO_USER_ID);
       set((state) => ({
         notes: state.notes.filter((n) => n.id !== id),
         editingNote: state.editingNote?.id === id ? null : state.editingNote,
