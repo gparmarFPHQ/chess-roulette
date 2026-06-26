@@ -61,6 +61,7 @@ export function DataTable({ data, caption, highlightRows = [], sortable = true }
     <div className="exhibit-data-table">
       <div className="exhibit-data-table__scroll">
         <table className="exhibit-data-table__table" role="table" aria-label={caption}>
+          {caption && <caption className="exhibit-data-table__caption">{caption}</caption>}
           <thead>
             <tr>
               {data.columns.map((col) => {
@@ -113,7 +114,6 @@ export function DataTable({ data, caption, highlightRows = [], sortable = true }
           </tbody>
         </table>
       </div>
-      {caption && <caption className="exhibit-data-table__caption">{caption}</caption>}
     </div>
   );
 }

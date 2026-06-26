@@ -41,28 +41,32 @@ function renderTextWithExhibitRefs(
   text: string,
   onOpenExhibit: (n: number) => void
 ): React.ReactNode[] {
-  const parts = text.split(EXHIBIT_REFERENCE_REGEX);
   const result: React.ReactNode[] = [];
+  const regex = /(Exhibit\s+(\d+))/gi;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
   let keyIndex = 0;
 
-  for (let i = 0; i < parts.length; i++) {
-    if (parts[i] === undefined || parts[i] === '') continue;
-
-    if (i + 2 < parts.length && /^\d+$/.test(parts[i + 2] ?? '')) {
-      const exhibitNum = parseInt(parts[i + 2], 10);
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
       result.push(
-        <ExhibitReference
-          key={`exhibit-ref-${keyIndex++}`}
-          exhibitNumber={exhibitNum}
-          onOpenExhibit={onOpenExhibit}
-        />
-      );
-      i += 2;
-    } else {
-      result.push(
-        <span key={`text-${keyIndex++}`}>{parts[i]}</span>
+        <span key={`text-${keyIndex++}`}>{text.slice(lastIndex, match.index)}</span>
       );
     }
+    result.push(
+      <ExhibitReference
+        key={`exhibit-ref-${keyIndex++}`}
+        exhibitNumber={parseInt(match[2], 10)}
+        onOpenExhibit={onOpenExhibit}
+      />
+    );
+    lastIndex = regex.lastIndex;
+  }
+
+  if (lastIndex < text.length) {
+    result.push(
+      <span key={`text-${keyIndex++}`}>{text.slice(lastIndex)}</span>
+    );
   }
 
   return result;
