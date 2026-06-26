@@ -15,7 +15,7 @@ export function ReadingPage() {
   const exhibitCount = coffeeWarsCase.exhibits.length;
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-screen flex flex-col pb-16 md:pb-0">
       {/* Top Navigation Bar */}
       <header className="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between">
         <div>

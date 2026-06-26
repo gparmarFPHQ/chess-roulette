@@ -53,60 +53,64 @@ export function ExhibitGallery({ exhibits, onExhibitClick, filter }: ExhibitGall
 
   return (
     <div className="exhibit-gallery" role="list" aria-label="Exhibit gallery">
-      {filteredExhibits.map((exhibit) => (
-        <button
-          key={exhibit.id}
-          className="exhibit-gallery__card"
-          onClick={() => onExhibitClick(exhibit.id)}
-          role="listitem"
-          aria-label={`Open ${exhibit.title}`}
-          type="button"
-        >
-          {/* Exhibit number badge */}
-          <span className="exhibit-gallery__number">
-            Exhibit {exhibit.exhibitNumber}
-          </span>
+      {filteredExhibits.map((exhibit) => {
+        // Capture data in a local variable for TS narrowing
+        const exhibitData = exhibit.data;
+        return (
+          <button
+            key={exhibit.id}
+            className="exhibit-gallery__card"
+            onClick={() => onExhibitClick(exhibit.id)}
+            role="listitem"
+            aria-label={`Open ${exhibit.title}`}
+            type="button"
+          >
+            {/* Exhibit number badge */}
+            <span className="exhibit-gallery__number">
+              Exhibit {exhibit.exhibitNumber}
+            </span>
 
-          {/* Thumbnail preview */}
-          <div className="exhibit-gallery__thumbnail">
-            {exhibit.type === 'photo' || exhibit.type === 'figure' ? (
-              <img
-                src={exhibit.imageUrl}
-                alt={exhibit.title}
-                className="exhibit-gallery__thumbnail-image"
-                loading="lazy"
-              />
-            ) : exhibit.data ? (
-              <div className="exhibit-gallery__thumbnail-table">
-                {exhibit.data.columns.slice(0, 3).map((col) => (
-                  <div key={col} className="exhibit-gallery__thumbnail-col">{col}</div>
-                ))}
-                {exhibit.data.rows.slice(0, 2).map((row, idx) => (
-                  <div key={idx} className="exhibit-gallery__thumbnail-row">
-                    {exhibit.data.columns.slice(0, 3).map((col) => (
-                      <div key={col} className="exhibit-gallery__thumbnail-cell">
-                        {typeof row[col] === 'number' ? row[col].toLocaleString() : String(row[col])}
-                      </div>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="exhibit-gallery__thumbnail-placeholder">No data</div>
-            )}
-          </div>
+            {/* Thumbnail preview */}
+            <div className="exhibit-gallery__thumbnail">
+              {exhibit.type === 'photo' || exhibit.type === 'figure' ? (
+                <img
+                  src={exhibit.imageUrl}
+                  alt={exhibit.title}
+                  className="exhibit-gallery__thumbnail-image"
+                  loading="lazy"
+                />
+              ) : exhibitData ? (
+                <div className="exhibit-gallery__thumbnail-table">
+                  {exhibitData.columns.slice(0, 3).map((col) => (
+                    <div key={col} className="exhibit-gallery__thumbnail-col">{col}</div>
+                  ))}
+                  {exhibitData.rows.slice(0, 2).map((row, idx) => (
+                    <div key={idx} className="exhibit-gallery__thumbnail-row">
+                      {exhibitData.columns.slice(0, 3).map((col) => (
+                        <div key={col} className="exhibit-gallery__thumbnail-cell">
+                          {typeof row[col] === 'number' ? row[col].toLocaleString() : String(row[col])}
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="exhibit-gallery__thumbnail-placeholder">No data</div>
+              )}
+            </div>
 
-          {/* Type indicator */}
-          <span className={`exhibit-gallery__type-badge ${getTypeBadgeClass(exhibit.type)}`}>
-            <span aria-hidden="true">{getTypeIcon(exhibit.type)}</span>
-            {exhibit.type}
-          </span>
+            {/* Type indicator */}
+            <span className={`exhibit-gallery__type-badge ${getTypeBadgeClass(exhibit.type)}`}>
+              <span aria-hidden="true">{getTypeIcon(exhibit.type)}</span>
+              {exhibit.type}
+            </span>
 
-          {/* Title and description */}
-          <h3 className="exhibit-gallery__title">{exhibit.title}</h3>
-          <p className="exhibit-gallery__description">{exhibit.description}</p>
-        </button>
-      ))}
+            {/* Title and description */}
+            <h3 className="exhibit-gallery__title">{exhibit.title}</h3>
+            <p className="exhibit-gallery__description">{exhibit.description}</p>
+          </button>
+        );
+      })}
     </div>
   );
 }

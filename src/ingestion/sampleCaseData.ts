@@ -14,7 +14,7 @@ import type { Exhibit } from '../features/exhibits/types';
 const chunks: CaseChunk[] = [
   {
     id: 'ccd-001',
-    text:     `On January 30, 2012, V.G. Siddhartha, founder and chairman of Amalgamated Bean Coffee (ABC) Trading Company and Café Coffee Day (CCD), sipped a cup of freshly brewed coffee in his Bangalore office. Outside, the Indian coffee market was simmering with unprecedented competition. Starbucks, the global giant, had just announced a 50:50 joint venture with the Tata Group to enter India. The announcement followed years of speculation and sent ripples through the industry. For Siddhartha, who had spent more than two decades building India's largest home-grown coffee chain, the entry of Starbucks was both a threat and a validation of the market he had pioneered.`,
+    text:     `On January 30, 2012, V.G. Siddhartha, founder and chairman of Amalgamated Bean Coffee (ABC) Trading Company and Café Coffee Day (CCD), sipped a cup of freshly brewed coffee in his Bangalore office. Outside, the Indian coffee market was simmering with unprecedented competition. Starbucks, the global giant, had just announced a 50:50 joint venture with the Tata Group to enter India. The announcement followed years of speculation and sent ripples through the industry. For Siddhartha, who had spent more than two decades building India's largest home-grown coffee chain, the entry of Starbucks was both a threat and a validation of the market he had pioneered. India's coffee market had grown significantly over the years (see Exhibit 1 for production and export data).`,
     visibility: 'student',
     topic: 'market entry',
     section: 'CCD\'s Business Model',
@@ -24,7 +24,7 @@ const chunks: CaseChunk[] = [
   },
   {
     id: 'ccd-002',
-    text:     `Café Coffee Day, the flagship retail brand of ABC, operated more than 1,400 cafés across India. Founded in 1996, CCD had created the café culture in India almost single-handedly. Its value proposition was simple: affordable coffee, youthful ambiance, and a place for urban Indians to socialize. CCD's average ticket size was about ₹100, a fraction of what global chains charged abroad. Yet the chain had survived, scaled, and even attracted private equity investment. Now, with Starbucks opening stores at premium locations in Delhi and Mumbai, the question on everyone's mind was whether CCD could hold its ground against a competitor with legendary brand power and deep pockets.`,
+    text:     `Café Coffee Day, the flagship retail brand of ABC, operated more than 1,400 cafés across India. Founded in 1996, CCD had created the café culture in India almost single-handedly. Its value proposition was simple: affordable coffee, youthful ambiance, and a place for urban Indians to socialize. CCD's average ticket size was about ₹100, a fraction of what global chains charged abroad. The economics of a typical CCD café are detailed in Exhibit 4. Yet the chain had survived, scaled, and even attracted private equity investment. Now, with Starbucks opening stores at premium locations in Delhi and Mumbai, the question on everyone's mind was whether CCD could hold its ground against a competitor with legendary brand power and deep pockets. Exhibit 2 shows the competitive landscape of specialist coffee chains in India.`,
     visibility: 'student',
     topic: 'competitive landscape',
     section: 'CCD\'s Business Model',
@@ -64,7 +64,7 @@ const chunks: CaseChunk[] = [
   },
   {
     id: 'ccd-006',
-    text:     `CCD's business model rested on three pillars: vertical integration, affordable pricing, and rapid expansion. The company sourced a significant portion of its coffee from its own plantations in Chikmagalur, reducing raw material costs. It also operated its own roasting facilities and sold packaged coffee through retail channels. This integration allowed CCD to price a cappuccino at roughly ₹50-70, while Starbucks charged ₹150-250 abroad. In India, CCD targeted mass-market consumers rather than premium coffee connoisseurs.`,
+    text:     `CCD's business model rested on three pillars: vertical integration, affordable pricing, and rapid expansion. The company sourced a significant portion of its coffee from its own plantations in Chikmagalur, reducing raw material costs. It also operated its own roasting facilities and sold packaged coffee through retail channels. This integration allowed CCD to price a cappuccino at roughly ₹50-70, while Starbucks charged ₹150-250 abroad. In India, CCD targeted mass-market consumers rather than premium coffee connoisseurs. CCD operated multiple formats — standard cafés, lounges, and kiosks — as shown in Exhibit 7.`,
     visibility: 'student',
     topic: 'business model',
     section: 'CCD\'s Business Model',
@@ -114,7 +114,7 @@ const chunks: CaseChunk[] = [
   },
   {
     id: 'ccd-011',
-    text:     `Jayaraj Hubli, CCD's chief financial officer, managed the economics of the chain closely. A typical CCD café required an investment of ₹3-4 million, including store interiors, equipment, and initial working capital. The company aimed for a payback period of three to four years. Rent accounted for 20-25% of revenues in prime locations, while food and beverage costs were roughly 30-35%. Labor costs were relatively low by global standards, at about 12-15% of revenues.`,
+    text:     `Jayaraj Hubli, CCD's chief financial officer, managed the economics of the chain closely. A typical CCD café required an investment of ₹3-4 million, including store interiors, equipment, and initial working capital. The company aimed for a payback period of three to four years. Rent accounted for 20-25% of revenues in prime locations, while food and beverage costs were roughly 30-35%. Labor costs were relatively low by global standards, at about 12-15% of revenues. The full breakdown of a CCD café's economics is presented in Exhibit 4.`,
     visibility: 'student',
     topic: 'unit economics',
     section: 'Financial Performance',
@@ -134,7 +134,7 @@ const chunks: CaseChunk[] = [
   },
   {
     id: 'ccd-013',
-    text:     `Starbucks Corporation, headquartered in Seattle, was the world's largest coffeehouse chain, with more than 17,000 stores across 55 countries by 2011. Founded in 1971, the company had built a powerful brand around premium coffee, consistent store experience, and the "third place" concept — a comfortable environment between home and work. Starbucks was known for high-quality arabica coffee, trained baristas, and premium prices. Its brand alone allowed it to charge significantly more than competitors in most markets.`,
+    text:     `Starbucks Corporation, headquartered in Seattle, was the world's largest coffeehouse chain, with more than 17,000 stores across 55 countries by 2011. Founded in 1971, the company had built a powerful brand around premium coffee, consistent store experience, and the "third place" concept — a comfortable environment between home and work. Starbucks was known for high-quality arabica coffee, trained baristas, and premium prices. Its brand alone allowed it to charge significantly more than competitors in most markets. Exhibit 8 shows Starbucks' global store count by region, while Exhibit 9 presents key financial metrics.`,
     visibility: 'student',
     topic: 'competitor background',
     section: 'Starbucks: The Global Challenger',
@@ -164,7 +164,7 @@ const chunks: CaseChunk[] = [
   },
   {
     id: 'ccd-016',
-    text:     `Dash also made it clear that Starbucks would not compete on price. "We are a premium brand. Our prices will reflect the quality of our coffee, our store experience, and the Starbucks brand. We are not trying to match CCD's prices. We are offering something different." The first Starbucks India store opened in Mumbai in October 2012, months after the case timeline, with prices roughly two to three times higher than CCD's.`,
+    text:     `Dash also made it clear that Starbucks would not compete on price. "We are a premium brand. Our prices will reflect the quality of our coffee, our store experience, and the Starbucks brand. We are not trying to match CCD's prices. We are offering something different." The first Starbucks India store opened in Mumbai in October 2012, months after the case timeline, with prices roughly two to three times higher than CCD's. Exhibit 10 shows how Starbucks' revenue is broken down across segments.`,
     visibility: 'student',
     topic: 'pricing strategy',
     section: 'Tata Starbucks in India',
@@ -184,7 +184,7 @@ const chunks: CaseChunk[] = [
   },
   {
     id: 'ccd-018',
-    text:     `Bijoor also cautioned that Starbucks would not find India easy. "Real estate is expensive, consumer tastes vary by region, and Indians are value-conscious. A premium positioning works in South Mumbai and South Delhi, but scaling beyond the top tier-1 cities is not straightforward. CCD's advantage is breadth; Starbucks' advantage is aspiration." He believed the two chains could coexist, serving different segments of the market.`,
+    text:     `Bijoor also cautioned that Starbucks would not find India easy. "Real estate is expensive, consumer tastes vary by region, and Indians are value-conscious. A premium positioning works in South Mumbai and South Delhi, but scaling beyond the top tier-1 cities is not straightforward. CCD's advantage is breadth; Starbucks' advantage is aspiration." He believed the two chains could coexist, serving different segments of the market. The Tata partnership gives Starbucks access to premium real estate through Tata properties (see Exhibit 12).`,
     visibility: 'student',
     topic: 'market segmentation',
     section: 'Industry Perspective',
@@ -234,7 +234,7 @@ const chunks: CaseChunk[] = [
   },
   {
     id: 'ccd-023',
-    text:     `Siddhartha sat back and considered the options. CCD had built a market from scratch, educated consumers, and created a beloved brand. Starbucks brought global cachet, premium positioning, and a powerful local partner in Tata. The battle would be fought across pricing, location, brand perception, and customer experience. The decisions Siddhartha and his team made in the coming months would determine whether Café Coffee Day remained India's coffee leader or became a cautionary tale about home-grown champions facing global giants.`,
+    text:     `Siddhartha sat back and considered the options. CCD had built a market from scratch, educated consumers, and created a beloved brand. Starbucks brought global cachet, premium positioning, and a powerful local partner in Tata. The battle would be fought across pricing, location, brand perception, and customer experience. India's young demographic profile (see Exhibit 14) meant that the youth-oriented brand would have a structural advantage. The decisions Siddhartha and his team made in the coming months would determine whether Café Coffee Day remained India's coffee leader or became a cautionary tale about home-grown champions facing global giants.`,
     visibility: 'student',
     topic: 'conclusion',
     section: 'Conclusion',

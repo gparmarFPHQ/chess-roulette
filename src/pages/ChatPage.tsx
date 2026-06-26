@@ -60,7 +60,7 @@ export function ChatPage() {
   const messages = store.activeSessionId ? (store.messages[store.activeSessionId] || []) : [];
 
   return (
-    <div className="h-screen flex bg-slate-50">
+    <div className="h-screen flex flex-col md:flex-row bg-slate-50 pb-16 md:pb-0">
       {/* Left: Character Select */}
       <div className="w-72 bg-white border-r border-slate-200 overflow-y-auto">
         <CharacterSelect

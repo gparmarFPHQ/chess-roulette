@@ -58,7 +58,7 @@ export function PieChart({ data, width, height = 400 }: PieChartProps) {
             ))}
           </Pie>
           <Tooltip
-            formatter={(value: number) => value.toLocaleString()}
+            formatter={(value: unknown) => (typeof value === 'number' ? value.toLocaleString() : String(value ?? ''))}
             contentStyle={{
               backgroundColor: '#fff',
               border: '1px solid #e5e7eb',

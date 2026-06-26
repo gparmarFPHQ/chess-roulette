@@ -27,7 +27,7 @@ export function WorkspacePage() {
   }, []);
 
   return (
-    <div className="h-screen flex flex-col bg-slate-50">
+    <div className="h-screen flex flex-col bg-slate-50 pb-16 md:pb-0">
       {/* Header */}
       <header className="bg-white border-b border-slate-200 px-6 py-3">
         <div className="flex items-center justify-between">
