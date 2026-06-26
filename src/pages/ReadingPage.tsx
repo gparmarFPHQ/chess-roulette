@@ -1,28 +1,18 @@
 // ============================================================================
 // MBA Case Study Platform — Reading Page
 // ============================================================================
-// Main reading interface with case content, highlights, and notes.
-// Initializes highlight and note stores from localStorage on mount.
+// Main reading interface with case content, highlights, notes, and exhibits navigation.
 // ============================================================================
 
-import React, { useEffect } from 'react';
+import React from 'react';
+import { Link } from 'react-router-dom';
 import { ReadingView } from '../features/reading/ReadingView';
-import { useHighlightStore } from '../features/reading/highlightStore';
-import { useNoteStore } from '../features/reading/noteStore';
 import { coffeeWarsCase } from '../ingestion/sampleCaseData';
-
-const CASE_ID = 'coffee-wars-india';
+import { BarChart3, Bookmark, MessageSquare } from 'lucide-react';
 
 export function ReadingPage() {
   const chunks = coffeeWarsCase.chunks;
-  const highlightStore = useHighlightStore();
-  const noteStore = useNoteStore();
-
-  // Load highlights and notes from localStorage on mount
-  useEffect(() => {
-    highlightStore.loadHighlights(CASE_ID);
-    noteStore.loadNotes(CASE_ID);
-  }, []);
+  const exhibitCount = coffeeWarsCase.exhibits.length;
 
   return (
     <div className="h-screen flex flex-col">
@@ -34,19 +24,47 @@ export function ReadingPage() {
           </h1>
           <p className="text-xs text-slate-500">Café Coffee Day vs. Starbucks</p>
         </div>
-        <div className="flex items-center space-x-3">
-          <button className="text-sm text-slate-600 hover:text-slate-900 px-3 py-1.5 rounded-md hover:bg-slate-100">
+        <nav className="flex items-center gap-1">
+          <Link
+            to="/chat"
+            className="flex items-center gap-1.5 text-sm text-slate-600 hover:text-burgundy-700 px-3 py-1.5 rounded-md hover:bg-slate-100 transition-colors"
+          >
+            <MessageSquare className="h-4 w-4" />
+            <span className="hidden sm:inline">Chat</span>
+          </Link>
+          <Link
+            to="/notes"
+            className="flex items-center gap-1.5 text-sm text-slate-600 hover:text-burgundy-700 px-3 py-1.5 rounded-md hover:bg-slate-100 transition-colors"
+          >
+            <Bookmark className="h-4 w-4" />
+            <span className="hidden sm:inline">Notes</span>
+          </Link>
+          <Link
+            to="/exhibits"
+            className="flex items-center gap-1.5 text-sm text-slate-600 hover:text-burgundy-700 px-3 py-1.5 rounded-md hover:bg-slate-100 transition-colors"
+          >
+            <BarChart3 className="h-4 w-4" />
+            <span className="hidden sm:inline">Exhibits</span>
+            <span className="text-xs bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full">
+              {exhibitCount}
+            </span>
+          </Link>
+          <div className="h-5 w-px bg-slate-200 mx-1" />
+          <button className="text-sm text-slate-600 hover:text-slate-900 px-3 py-1.5 rounded-md hover:bg-slate-100 transition-colors">
             Export Notes
           </button>
-          <button className="text-sm bg-burgundy-700 text-white px-4 py-1.5 rounded-md hover:bg-burgundy-800">
+          <Link
+            to="/workspace"
+            className="text-sm bg-burgundy-700 text-white px-4 py-1.5 rounded-md hover:bg-burgundy-800 transition-colors"
+          >
             Go to Workspace
-          </button>
-        </div>
+          </Link>
+        </nav>
       </header>
 
       {/* Main Reading View */}
       <ReadingView 
-        caseId={CASE_ID}
+        caseId="coffee-wars-india"
         chunks={chunks}
       />
     </div>

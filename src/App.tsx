@@ -8,6 +8,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { MBAHome } from './pages/MBAHome';
 import { ReadingPage } from './pages/ReadingPage';
+import { ExhibitsPage } from './pages/ExhibitsPage';
 import { ChatPage } from './pages/ChatPage';
 import { NotesPage } from './pages/NotesPage';
 import { WorkspacePage } from './pages/WorkspacePage';
@@ -26,6 +27,7 @@ function App() {
         <Route path="/" element={<MBAHome />} />
         <Route path="/home" element={<MBAHome />} />
         <Route path="/read" element={<ReadingPage />} />
+        <Route path="/exhibits" element={<ExhibitsPage />} />
         <Route path="/chat" element={<ChatPage />} />
         <Route path="/notes" element={<NotesPage />} />
         <Route path="/workspace" element={<WorkspacePage />} />
