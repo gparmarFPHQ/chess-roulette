@@ -44,7 +44,7 @@ const defaultApiClient: HighlightApiClient = {
   async getHighlights(caseId: string): Promise<ApiHighlight[]> {
     const res = await fetch(`${BASE_URL}/cases/${encodeURIComponent(caseId)}/highlights`);
     if (!res.ok) throw new Error(`Failed to fetch highlights: ${res.status}`);
-    const data = await res.json();
+    const data = await res.json() as { highlights?: ApiHighlight[] };
     return data.highlights || [];
   },
 
@@ -61,7 +61,7 @@ const defaultApiClient: HighlightApiClient = {
       body: JSON.stringify(payload),
     });
     if (!res.ok) throw new Error(`Failed to create highlight: ${res.status}`);
-    const data = await res.json();
+    const data = await res.json() as { highlight: ApiHighlight };
     return data.highlight;
   },
 
@@ -72,7 +72,7 @@ const defaultApiClient: HighlightApiClient = {
       body: JSON.stringify(updates),
     });
     if (!res.ok) throw new Error(`Failed to update highlight: ${res.status}`);
-    const data = await res.json();
+    const data = await res.json() as { highlight: ApiHighlight };
     return data.highlight;
   },
 

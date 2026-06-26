@@ -42,7 +42,7 @@ const defaultApiClient: NoteApiClient = {
   async getNotes(caseId: string): Promise<ApiNote[]> {
     const res = await fetch(`${BASE_URL}/cases/${encodeURIComponent(caseId)}/notes`);
     if (!res.ok) throw new Error(`Failed to fetch notes: ${res.status}`);
-    const data = await res.json();
+    const data = await res.json() as { notes?: ApiNote[] };
     return data.notes || [];
   },
 
@@ -59,7 +59,7 @@ const defaultApiClient: NoteApiClient = {
       body: JSON.stringify(payload),
     });
     if (!res.ok) throw new Error(`Failed to create note: ${res.status}`);
-    const data = await res.json();
+    const data = await res.json() as { note: ApiNote };
     return data.note;
   },
 
@@ -70,7 +70,7 @@ const defaultApiClient: NoteApiClient = {
       body: JSON.stringify(updates),
     });
     if (!res.ok) throw new Error(`Failed to update note: ${res.status}`);
-    const data = await res.json();
+    const data = await res.json() as { note: ApiNote };
     return data.note;
   },
 
