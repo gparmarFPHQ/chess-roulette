@@ -325,9 +325,10 @@ export function getSelectionInContainer(container: HTMLElement): {
   if (!text) return null;
 
   // Find which chunk element contains this selection
-  const chunkElement = range.commonAncestorContainer.nodeType === Node.ELEMENT_NODE
+  const chunkElement = (range.commonAncestorContainer.nodeType === Node.ELEMENT_NODE
     ? (range.commonAncestorContainer as HTMLElement).closest('[data-chunk-id]')
-    : range.commonAncestorContainer.parentElement?.closest('[data-chunk-id]');
+    : range.commonAncestorContainer.parentElement?.closest('[data-chunk-id]')
+  ) as HTMLElement | null;
 
   return {
     range,
