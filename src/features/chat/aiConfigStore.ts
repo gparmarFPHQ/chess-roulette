@@ -41,7 +41,11 @@ export const useAIConfigStore = create<AIConfigState>()(
       setProvider: (provider) => {
         set((state) => {
           const models = PROVIDER_MODELS[provider];
-          const newModel = models[0] || 'mock';
+          // If the current model exists in the new provider's list, keep it;
+          // otherwise fall back to the provider's first (default) model.
+          const newModel = models.includes(state.config.model)
+            ? state.config.model
+            : (models[0] || 'mock');
           const useMockMode = provider === 'mock';
 
           return {
@@ -76,7 +80,8 @@ export const useAIConfigStore = create<AIConfigState>()(
       /**
        * Toggle mock mode on/off. When enabling mock mode, switch provider
        * to 'mock' and clear the API key. When disabling, switch to the
-       * previously selected provider (or deepseek as fallback).
+       * previously selected provider (or deepseek as fallback) and auto-select
+       * the correct default model.
        */
       setMockMode: (useMock) => {
         set((state) => {
@@ -93,11 +98,15 @@ export const useAIConfigStore = create<AIConfigState>()(
           // When disabling mock mode, keep the current provider unless it's 'mock'
           const provider = state.config.provider === 'mock' ? 'deepseek' : state.config.provider;
           const models = PROVIDER_MODELS[provider];
+          // Preserve the current model if it's valid for this provider,
+          // otherwise auto-select the provider's default (first) model.
+          const model = models.includes(state.config.model) ? state.config.model : models[0];
+
           return {
             config: {
               ...state.config,
               provider,
-              model: models[0] || 'mock',
+              model,
               useMockMode: false,
             },
           };

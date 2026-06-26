@@ -65,19 +65,31 @@ export function CharacterSelect({
           return (
             <button
               key={persona.id}
+              data-persona-id={persona.id}
+              type="button"
               role="option"
               aria-selected={isActive}
               onClick={() => onSelectPersona(persona.id)}
               className={`
-                w-full text-left p-3 rounded-xl border-2 transition-all duration-200 group
+                relative w-full text-left p-3 rounded-xl border-2 transition-all duration-200 group
                 focus:outline-none focus:ring-2 focus:ring-offset-1
                 ${
                   isActive
-                    ? 'border-gray-900 bg-white shadow-md'
-                    : 'border-transparent bg-white hover:border-gray-200 hover:shadow-sm'
+                    ? 'border-gray-900 bg-white shadow-md ring-1 ring-gray-900'
+                    : 'border-transparent bg-white hover:border-gray-300 hover:shadow-sm cursor-pointer'
                 }
               `}
+              style={isActive ? { borderLeftWidth: '2px', borderLeftColor: colors.primary } : undefined}
             >
+              {/* Active Indicator Bar */}
+              {isActive && (
+                <div
+                  className="absolute left-0 top-3 bottom-3 w-1 rounded-r-full"
+                  style={{ backgroundColor: colors.primary }}
+                  aria-hidden="true"
+                />
+              )}
+
               {/* Card Header: Avatar + Name + Badge */}
               <div className="flex items-start gap-3">
                 {/* Avatar */}
@@ -126,15 +138,6 @@ export function CharacterSelect({
                     "{personalityHint}"
                   </p>
                 </div>
-              )}
-
-              {/* Active Indicator Bar */}
-              {isActive && (
-                <div
-                  className="absolute left-0 top-3 bottom-3 w-1 rounded-r-full"
-                  style={{ backgroundColor: colors.primary }}
-                  aria-hidden="true"
-                />
               )}
             </button>
           );

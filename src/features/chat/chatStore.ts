@@ -2,8 +2,8 @@
 // MBA Case Study Platform — Chat Store (Zustand)
 // ============================================================================
 // Central state management for the chat feature. Handles sessions, messages,
-// persona lookups, and API communication. Supports both mock mode (client-side)
-// and real mode (backend proxy with user API key).
+// persona lookups, and API communication. Supports both mock mode (client-side
+// with localStorage persistence) and real mode (backend proxy with user API key).
 // ============================================================================
 
 import { create } from 'zustand';
@@ -21,6 +21,86 @@ import { generateMockPersonaResponse } from '../../personaEngine/mockEngine';
 import { api } from '../../lib/api';
 import { coffeeWarsCase } from '../../ingestion/sampleCaseData';
 import { analyzeQuery } from '../../personaEngine/adversarialDefense';
+import { getDefaultStorageProvider, DEMO_USER_ID } from '../../lib/localStorageProvider';
+import { generateId } from '../../lib/idUtils';
+
+// ---------------------------------------------------------------------------
+// Storage Provider (singleton)
+// ---------------------------------------------------------------------------
+
+const storage = getDefaultStorageProvider();
+
+// ---------------------------------------------------------------------------
+// Backend ↔ Domain Mapping
+// ---------------------------------------------------------------------------
+
+/**
+ * Map backend chat session to domain ChatSession.
+ */
+function backendSessionToDomain(s: BackendChatSession): ChatSession {
+  return {
+    id: s.id,
+    userId: s.user_id,
+    caseId: s.case_id,
+    personaId: s.persona_id,
+    createdAt: s.created_at,
+  };
+}
+
+/**
+ * Map backend chat message to domain ChatMessage.
+ */
+function backendMessageToDomain(
+  msg: BackendChatMessage,
+  metadata?: ChatMessage['metadata']
+): ChatMessage {
+  return {
+    id: msg.id,
+    sessionId: msg.session_id,
+    role: msg.role,
+    content: msg.content,
+    createdAt: msg.created_at,
+    metadata,
+  };
+}
+
+/**
+ * Map domain ChatSession to backend shape.
+ */
+function domainToBackendSession(s: ChatSession): {
+  id: string;
+  user_id: string;
+  case_id: string;
+  persona_id: string;
+  created_at: number;
+} {
+  return {
+    id: s.id,
+    user_id: s.userId,
+    case_id: s.caseId,
+    persona_id: s.personaId,
+    created_at: s.createdAt,
+  };
+}
+
+/**
+ * Map domain ChatMessage to backend shape.
+ */
+function domainToBackendMessage(m: ChatMessage): {
+  id: string;
+  session_id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  created_at: number;
+} {
+  return {
+    id: m.id,
+    session_id: m.sessionId,
+    role: m.role,
+    content: m.content,
+    created_at: m.createdAt,
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Store State & Actions
@@ -72,19 +152,30 @@ export const useChatStore = create<ChatState>((set, get) => ({
   setPersonas: (personas) => set({ personas }),
 
   /**
-   * Load all chat sessions for a case.
+   * Load all chat sessions for a case from localStorage.
+   * Also loads messages for each session.
    */
   loadSessions: async (caseId) => {
     set({ isLoading: true, error: null });
     try {
-      const data = await api.chat.loadSessions(caseId);
-      const sessions = data.sessions.map(backendToSession);
+      // Try localStorage first
+      const backendSessions = await storage.getChatSessions(DEMO_USER_ID, caseId);
+      const sessions = backendSessions.map(backendSessionToDomain);
       set({ sessions, isLoading: false });
 
-      // If we have an active session, ensure its messages are loaded
-      const { activeSessionId, loadMessages } = get();
-      if (activeSessionId && sessions.find(s => s.id === activeSessionId)) {
-        await loadMessages(activeSessionId);
+      // Load messages for each session
+      for (const session of sessions) {
+        const backendMessages = await storage.getChatMessages(session.id);
+        const messages = backendMessages.map((m) => backendMessageToDomain(m));
+        set((state) => ({
+          messages: { ...state.messages, [session.id]: messages },
+        }));
+      }
+
+      // If we have an active session, ensure it's still valid
+      const { activeSessionId } = get();
+      if (activeSessionId && !sessions.find((s) => s.id === activeSessionId)) {
+        set({ activeSessionId: null });
       }
     } catch (err) {
       set({
@@ -96,12 +187,22 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   /**
    * Create a new chat session with a persona.
+   * Persists to localStorage.
    */
   createSession: async (caseId, personaId) => {
     set({ isLoading: true, error: null });
     try {
-      const data = await api.chat.createSession(caseId, personaId);
-      const session = backendToSession(data.session);
+      const sessionData: ChatSession = {
+        id: generateId(),
+        userId: DEMO_USER_ID,
+        caseId,
+        personaId,
+        createdAt: Date.now(),
+      };
+
+      // Save to localStorage
+      const saved = await storage.createChatSession(domainToBackendSession(sessionData));
+      const session = backendSessionToDomain(saved);
 
       set((state) => ({
         sessions: [...state.sessions, session],
@@ -141,12 +242,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
   /**
    * Send a message in a session.
    * Routes to mock engine (client-side) or real API based on AI config.
+   * In mock mode, messages are persisted to localStorage.
    */
   sendMessage: async (sessionId, content) => {
     if (!content.trim()) return;
 
     const { sessions } = get();
-    const session = sessions.find(s => s.id === sessionId);
+    const session = sessions.find((s) => s.id === sessionId);
     if (!session) throw new Error('Session not found');
 
     set({ isSending: true, error: null });
@@ -175,13 +277,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
       if (isMockMode) {
         // ── MOCK MODE: Generate response client-side ──────────────
         const { personas, messages } = get();
-        const persona = personas.find(p => p.id === session.personaId);
+        const persona = personas.find((p) => p.id === session.personaId);
         if (!persona) {
           throw new Error('Persona not found for this session');
         }
 
         // Build context chunks from the knowledge base
-        // Filter to only chunks this persona can access
         const kb = coffeeWarsCase;
         const accessibleChunks = kb.chunks.filter(
           (chunk) =>
@@ -196,10 +297,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
           content.toLowerCase()
             .replace(/[^a-z0-9\s]/g, ' ')
             .split(/\s+/)
-            .filter(t => t.length > 2)
+            .filter((t) => t.length > 2)
         );
 
-        const scored = accessibleChunks.map(chunk => {
+        const scored = accessibleChunks.map((chunk) => {
           const chunkLower = chunk.text.toLowerCase();
           const chunkTopic = (chunk.topic || '').toLowerCase();
           let score = 0;
@@ -211,7 +312,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         });
 
         scored.sort((a, b) => b.score - a.score);
-        const contextChunks = scored.slice(0, 3).map(s => ({
+        const contextChunks = scored.slice(0, 3).map((s) => ({
           id: s.chunk.id,
           text: s.chunk.text,
           topic: s.chunk.topic,
@@ -220,7 +321,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
         // Generate mock response
         const conversationHistory = messages[sessionId] || [];
-        // Cast persona to ingestion type for mock engine compatibility
         const mockPersona = persona as unknown as IngestionPersonaProfile;
         const mockResult = await generateMockPersonaResponse({
           persona: mockPersona,
@@ -232,9 +332,19 @@ export const useChatStore = create<ChatState>((set, get) => ({
         // Analyze for adversarial flags
         const adversarialAnalysis = analyzeQuery(content.trim());
 
+        // Persist user message to localStorage
+        const userMsgId = generateId();
+        await storage.createChatMessage(domainToBackendMessage({
+          id: userMsgId,
+          sessionId,
+          role: 'user',
+          content: content.trim(),
+          createdAt: Date.now(),
+        }));
+
         // Add assistant message
         const assistantMsg: ChatMessage = {
-          id: `mock-${Date.now()}`,
+          id: generateId(),
           sessionId,
           role: 'assistant',
           content: mockResult.content,
@@ -247,10 +357,15 @@ export const useChatStore = create<ChatState>((set, get) => ({
           },
         };
 
+        // Persist assistant message to localStorage
+        await storage.createChatMessage(domainToBackendMessage(assistantMsg));
+
         set((state) => ({
           messages: {
             ...state.messages,
-            [sessionId]: [...(state.messages[sessionId] || []), assistantMsg],
+            [sessionId]: [...(state.messages[sessionId] || []).filter(
+              (m) => m.id !== optimisticUserMsg.id
+            ), { ...optimisticUserMsg, id: userMsgId }, assistantMsg],
           },
           isSending: false,
         }));
@@ -272,7 +387,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         messages: {
           ...state.messages,
           [sessionId]: (state.messages[sessionId] || []).filter(
-            m => m.id !== optimisticUserMsg.id
+            (m) => m.id !== optimisticUserMsg.id
           ),
         },
       }));
@@ -281,15 +396,27 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   /**
    * Load messages for a session.
+   * Tries localStorage first, falls back to API.
    */
   loadMessages: async (sessionId) => {
     const { sessions } = get();
-    const session = sessions.find(s => s.id === sessionId);
+    const session = sessions.find((s) => s.id === sessionId);
     if (!session) return;
 
     try {
+      // Try localStorage first
+      const backendMessages = await storage.getChatMessages(sessionId);
+      if (backendMessages.length > 0) {
+        const messages = backendMessages.map((m) => backendMessageToDomain(m));
+        set((state) => ({
+          messages: { ...state.messages, [sessionId]: messages },
+        }));
+        return;
+      }
+
+      // Fall back to API
       const data = await api.chat.loadMessages(session.caseId, sessionId);
-      const messages = data.messages.map(msg => backendToMessage(msg));
+      const messages = data.messages.map((msg) => backendToMessage(msg));
 
       set((state) => ({
         messages: { ...state.messages, [sessionId]: messages },
@@ -306,7 +433,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
    */
   loadSuggestedQuestions: async (personaId) => {
     const { personas } = get();
-    const persona = personas.find(p => p.id === personaId);
+    const persona = personas.find((p) => p.id === personaId);
     if (!persona) return;
 
     // Use default questions from the persona engine
@@ -328,9 +455,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
    */
   getPersonaForSession: (sessionId) => {
     const { sessions, personas } = get();
-    const session = sessions.find(s => s.id === sessionId);
+    const session = sessions.find((s) => s.id === sessionId);
     if (!session) return null;
-    return personas.find(p => p.id === session.personaId) ?? null;
+    return personas.find((p) => p.id === session.personaId) ?? null;
   },
 
   /**
@@ -348,11 +475,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
   clearError: () => set({ error: null }),
 
   /**
-   * Delete a session locally (UI-only, no backend call).
+   * Delete a session (removes from localStorage and state).
    */
   deleteSession: (sessionId) => {
     set((state) => {
-      const newSessions = state.sessions.filter(s => s.id !== sessionId);
+      const newSessions = state.sessions.filter((s) => s.id !== sessionId);
       const newMessages = { ...state.messages };
       delete newMessages[sessionId];
 

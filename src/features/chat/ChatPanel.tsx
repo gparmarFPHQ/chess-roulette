@@ -15,6 +15,7 @@ import { SuggestedQuestions } from './SuggestedQuestions';
 import { AISettings } from './AISettings';
 import { useAIConfigStore } from './aiConfigStore';
 import { PROVIDER_LABELS } from './aiConfigTypes';
+import { getPersonaColors } from './utils';
 
 interface ChatPanelProps {
   session: ChatSession | null;
@@ -89,16 +90,18 @@ export function ChatPanel({
 
   const showSuggestedQuestions = messages.length === 0 && persona;
 
+  const personaColors = persona ? getPersonaColors(persona) : null;
+
   // ── Empty State ─────────────────────────────────────────────────
 
   if (!session || !persona) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-gray-50">
+      <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
         <div className="text-center px-8 max-w-md">
           {/* Illustration */}
-          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gray-100 flex items-center justify-center">
+          <div className="w-24 h-24 mx-auto mb-6 rounded-2xl bg-white shadow-lg border border-gray-100 flex items-center justify-center">
             <svg
-              className="w-10 h-10 text-gray-300"
+              className="w-12 h-12 text-gray-300"
               viewBox="0 0 20 20"
               fill="currentColor"
             >
@@ -109,13 +112,32 @@ export function ChatPanel({
               />
             </svg>
           </div>
-          <h2 className="text-lg font-semibold text-gray-700 mb-2">
+          <h2 className="text-xl font-semibold text-gray-800 mb-2">
             Select a Character
           </h2>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 leading-relaxed">
             Choose a character from the case to start a conversation. Each character
             responds based on their role, knowledge, and personality in the case study.
           </p>
+          <div className="mt-6 flex items-center justify-center gap-2 text-xs text-gray-400">
+            <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
+            </svg>
+            <span>AI-powered conversations grounded in case content</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Loading State ───────────────────────────────────────────────
+
+  if (isLoading) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="w-10 h-10 mx-auto mb-4 rounded-full border-2 border-gray-200 border-t-indigo-500 animate-spin" />
+          <p className="text-sm text-gray-500">Loading conversation…</p>
         </div>
       </div>
     );
@@ -173,6 +195,7 @@ export function ChatPanel({
 
         {/* Settings Button */}
         <button
+          type="button"
           onClick={openSettings}
           className="ml-auto p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300"
           aria-label="Open AI settings"
@@ -203,8 +226,11 @@ export function ChatPanel({
         {showSuggestedQuestions && questionStrings.length > 0 ? (
           /* Empty State with Suggested Questions */
           <div className="flex flex-col items-center justify-center h-full py-12">
-            <div className="w-16 h-16 rounded-full flex items-center justify-center text-white mb-4">
-              <span className="text-3xl">
+            <div
+              className="w-16 h-16 rounded-full flex items-center justify-center text-white mb-4 shadow-lg"
+              style={{ backgroundColor: personaColors?.primary ?? '#4F46E5' }}
+            >
+              <span className="text-2xl">
                 {persona.avatar ?? persona.name.charAt(0)}
               </span>
             </div>
@@ -222,7 +248,7 @@ export function ChatPanel({
           </div>
         ) : (
           /* Messages List */
-          <div>
+          <div className="max-w-3xl mx-auto">
             {messages.map((msg, index) => (
               <Message
                 key={msg.id}
@@ -238,10 +264,7 @@ export function ChatPanel({
                 {/* Avatar */}
                 <div
                   className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0 mt-1"
-                  style={{
-                    backgroundColor:
-                      persona.avatar ? '#4F46E5' : '#4F46E5',
-                  }}
+                  style={{ backgroundColor: personaColors?.primary ?? '#4F46E5' }}
                 >
                   {persona.avatar ?? persona.name.charAt(0)}
                 </div>

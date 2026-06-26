@@ -2,6 +2,7 @@
 // MBA Case Study Platform — Workspace Page
 // ============================================================================
 // Proposal drafting workspace with rich text editor.
+// Loads draft from localStorage on mount.
 // ============================================================================
 
 import React, { useEffect } from 'react';
@@ -14,12 +15,15 @@ import { ExportMenu } from '../features/workspace/ExportMenu';
 import { AutosaveIndicator } from '../features/workspace/AutosaveIndicator';
 import { ArrowLeft } from 'lucide-react';
 
+const CASE_ID = 'coffee-wars-india';
+
 export function WorkspacePage() {
   const navigate = useNavigate();
   const store = useDraftStore();
 
+  // Load draft from localStorage on mount
   useEffect(() => {
-    store.loadDraft('coffee-wars-india');
+    store.loadDraft(CASE_ID);
   }, []);
 
   return (

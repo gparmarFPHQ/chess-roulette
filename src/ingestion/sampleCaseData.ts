@@ -8,7 +8,8 @@
 // a teacher-edition PDF and produces the same structure automatically.
 // ============================================================================
 
-import type { KnowledgeBase, CaseChunk, CharacterAccessMap, PersonaProfile, Exhibit } from './types';
+import type { KnowledgeBase, CaseChunk, CharacterAccessMap, PersonaProfile } from './types';
+import type { Exhibit } from '../features/exhibits/types';
 
 const chunks: CaseChunk[] = [
   {
@@ -589,21 +590,27 @@ const characters: CharacterAccessMap[] = [
   }
 ];
 
+const BURGUNDY = '#8B1A4A';
+const BURGUNDY_LIGHT = '#C2185B';
+const GOLD = '#D4A843';
+const STEEL_BLUE = '#4682B4';
+const TEAL = '#2A9D8F';
+
 const exhibits: Exhibit[] = [
   {
         id: 'exhibit-1',
         exhibitNumber: 1,
         title: 'India\'s Coffee Market',
         type: 'table',
-        description: 'Production, exports, and domestic consumption of coffee in India.',
-        tableData: {
-      "columns": [
+        description: 'Production, exports, and domestic consumption of coffee in India (2006-2011).',
+        data: {
+      columns: [
         "Year",
         "Production (000 tons)",
         "Exports (000 tons)",
         "Domestic (000 tons)"
       ],
-      "rows": [
+      rows: [
         {
           "Year": 2006,
           "Production (000 tons)": 288,
@@ -643,6 +650,7 @@ const exhibits: Exhibit[] = [
       ]
     },
         caption: 'Coffee production in India has grown steadily, with exports accounting for about 70% of output.',
+        source: 'National Coffee Promotion Council, India',
         pageNumber: 15,
   },
   {
@@ -651,14 +659,14 @@ const exhibits: Exhibit[] = [
         title: 'India\'s Specialist Coffee Chains',
         type: 'table',
         description: 'Major coffee chain operators in India as of 2011-2012.',
-        tableData: {
-      "columns": [
+        data: {
+      columns: [
         "Chain",
         "Approx. Stores",
         "Positioning",
         "Owner"
       ],
-      "rows": [
+      rows: [
         {
           "Chain": "Café Coffee Day",
           "Approx. Stores": 1400,
@@ -686,6 +694,7 @@ const exhibits: Exhibit[] = [
       ]
     },
         caption: 'CCD dominates by store count, while international chains target premium segments.',
+        source: 'Company filings and industry reports',
         pageNumber: 15,
   },
   {
@@ -694,29 +703,22 @@ const exhibits: Exhibit[] = [
         title: 'Global Coffee Market Snapshot',
         type: 'chart',
         description: 'Global coffee consumption by region.',
-        chartData: {
-      "chartType": "pie",
-      "labels": [
-        "Europe",
-        "North America",
-        "Asia Pacific",
-        "Latin America",
-        "Others"
+        data: {
+      columns: ["Region", "Share (%)"],
+      rows: [
+        { "Region": "Europe", "Share (%)": 32 },
+        { "Region": "North America", "Share (%)": 24 },
+        { "Region": "Asia Pacific", "Share (%)": 22 },
+        { "Region": "Latin America", "Share (%)": 12 },
+        { "Region": "Others", "Share (%)": 10 }
       ],
-      "series": [
-        {
-          "name": "Share %",
-          "values": [
-            32,
-            24,
-            22,
-            12,
-            10
-          ]
-        }
-      ]
+      chartType: 'pie',
+      xKey: 'Region',
+      yKeys: ['Share (%)'],
+      colors: [BURGUNDY, BURGUNDY_LIGHT, GOLD, STEEL_BLUE, TEAL]
     },
         caption: 'Europe and North America remain the largest coffee-consuming regions, but Asia Pacific is the fastest-growing.',
+        source: 'International Coffee Organization',
         pageNumber: 16,
   },
   {
@@ -725,13 +727,13 @@ const exhibits: Exhibit[] = [
         title: 'Economics of a CCD Café',
         type: 'table',
         description: 'Representative cost and revenue structure for a standard CCD outlet.',
-        tableData: {
-      "columns": [
+        data: {
+      columns: [
         "Item",
         "Value",
         "Notes"
       ],
-      "rows": [
+      rows: [
         {
           "Item": "Initial investment",
           "Value": "₹3-4 million",
@@ -775,6 +777,7 @@ const exhibits: Exhibit[] = [
       ]
     },
         caption: 'CCD cafés operate on thin margins but keep costs low through vertical integration and low labor costs.',
+        source: 'CCD management estimates',
         pageNumber: 16,
   },
   {
@@ -783,8 +786,9 @@ const exhibits: Exhibit[] = [
         title: 'A CCD Lounge',
         type: 'photo',
         description: 'Photograph of a CCD Square lounge interior.',
-        imageUrl: '/exhibits/ccd-lounge.jpg',
+        imageUrl: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=800&h=600&fit=crop',
         caption: 'CCD Square lounges target a more premium customer segment with larger spaces and upgraded interiors.',
+        source: 'Coffee Day Enterprises',
         pageNumber: 17,
   },
   {
@@ -793,8 +797,9 @@ const exhibits: Exhibit[] = [
         title: 'CCD Square Format',
         type: 'photo',
         description: 'Photograph of a CCD Square outlet.',
-        imageUrl: '/exhibits/ccd-square.jpg',
+        imageUrl: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=800&h=600&fit=crop',
         caption: 'The Square format offers premium food and beverages in a more upscale setting.',
+        source: 'Coffee Day Enterprises',
         pageNumber: 17,
   },
   {
@@ -803,15 +808,15 @@ const exhibits: Exhibit[] = [
         title: 'CCD\'s Service Formats',
         type: 'table',
         description: 'Comparison of CCD store formats.',
-        tableData: {
-      "columns": [
+        data: {
+      columns: [
         "Format",
         "Size (sq ft)",
         "Seats",
         "Typical Locations",
         "Menu Focus"
       ],
-      "rows": [
+      rows: [
         {
           "Format": "Standard Café",
           "Size (sq ft)": "1,000-1,500",
@@ -836,6 +841,7 @@ const exhibits: Exhibit[] = [
       ]
     },
         caption: 'CCD uses multiple formats to reach different locations and customer segments.',
+        source: 'Coffee Day Enterprises',
         pageNumber: 18,
   },
   {
@@ -844,14 +850,14 @@ const exhibits: Exhibit[] = [
         title: 'Starbucks\' Global Store Count',
         type: 'table',
         description: 'Starbucks store count by region, fiscal 2011.',
-        tableData: {
-      "columns": [
+        data: {
+      columns: [
         "Region",
         "Company-Operated",
         "Licensed",
         "Total"
       ],
-      "rows": [
+      rows: [
         {
           "Region": "United States",
           "Company-Operated": 6383,
@@ -879,6 +885,7 @@ const exhibits: Exhibit[] = [
       ]
     },
         caption: 'Starbucks had more than 17,000 stores worldwide by fiscal 2011.',
+        source: 'Starbucks Corporation Annual Report 2011',
         pageNumber: 18,
   },
   {
@@ -887,14 +894,14 @@ const exhibits: Exhibit[] = [
         title: 'Starbucks Financial Data',
         type: 'table',
         description: 'Selected financial metrics for Starbucks, fiscal 2009-2011.',
-        tableData: {
-      "columns": [
+        data: {
+      columns: [
         "Metric",
         "FY2009",
         "FY2010",
         "FY2011"
       ],
-      "rows": [
+      rows: [
         {
           "Metric": "Revenue ($ billion)",
           "FY2009": 9.77,
@@ -922,6 +929,7 @@ const exhibits: Exhibit[] = [
       ]
     },
         caption: 'Starbucks recovered strongly from the 2008 downturn with rising revenues and profitability.',
+        source: 'Starbucks Corporation Annual Reports',
         pageNumber: 19,
   },
   {
@@ -930,27 +938,21 @@ const exhibits: Exhibit[] = [
         title: 'Starbucks Revenue Breakdown',
         type: 'chart',
         description: 'Revenue composition by segment, FY2011.',
-        chartData: {
-      "chartType": "pie",
-      "labels": [
-        "Company-Operated Stores",
-        "Licensed Stores",
-        "Consumer Products",
-        "Foodservice & Other"
+        data: {
+      columns: ["Segment", "Revenue (%)"],
+      rows: [
+        { "Segment": "Company-Operated Stores", "Revenue (%)": 79 },
+        { "Segment": "Licensed Stores", "Revenue (%)": 10 },
+        { "Segment": "Consumer Products", "Revenue (%)": 7 },
+        { "Segment": "Foodservice & Other", "Revenue (%)": 4 }
       ],
-      "series": [
-        {
-          "name": "Revenue %",
-          "values": [
-            79,
-            10,
-            7,
-            4
-          ]
-        }
-      ]
+      chartType: 'pie',
+      xKey: 'Segment',
+      yKeys: ['Revenue (%)'],
+      colors: [BURGUNDY, BURGUNDY_LIGHT, GOLD, STEEL_BLUE]
     },
         caption: 'The vast majority of Starbucks revenue comes from company-operated stores.',
+        source: 'Starbucks Corporation Annual Report 2011',
         pageNumber: 19,
   },
   {
@@ -959,13 +961,13 @@ const exhibits: Exhibit[] = [
         title: 'CCD and Starbucks In-Store Sales Mix',
         type: 'table',
         description: 'Comparison of revenue mix by product category.',
-        tableData: {
-      "columns": [
+        data: {
+      columns: [
         "Category",
         "CCD (est. %)",
         "Starbucks Global (%)"
       ],
-      "rows": [
+      rows: [
         {
           "Category": "Coffee & beverages",
           "CCD (est. %)": 60,
@@ -984,6 +986,7 @@ const exhibits: Exhibit[] = [
       ]
     },
         caption: 'CCD relies more on food, while Starbucks derives most revenue from beverages.',
+        source: 'Industry analysis',
         pageNumber: 20,
   },
   {
@@ -992,12 +995,12 @@ const exhibits: Exhibit[] = [
         title: 'Tata Group\'s Hotel and Retail Properties',
         type: 'table',
         description: 'Selected Tata properties relevant to Starbucks store locations.',
-        tableData: {
-      "columns": [
+        data: {
+      columns: [
         "Property Type",
         "Examples"
       ],
-      "rows": [
+      rows: [
         {
           "Property Type": "Hotels",
           "Examples": "Taj Mahal Palace, Taj Lands End, Vivanta by Taj"
@@ -1013,6 +1016,7 @@ const exhibits: Exhibit[] = [
       ]
     },
         caption: 'The Tata partnership gives Starbucks access to premium real estate and brand credibility.',
+        source: 'Tata Group public information',
         pageNumber: 20,
   },
   {
@@ -1021,8 +1025,9 @@ const exhibits: Exhibit[] = [
         title: 'Starbucks India Launch',
         type: 'photo',
         description: 'Photographs from the opening of the first Starbucks store in India.',
-        imageUrl: '/exhibits/starbucks-india.jpg',
+        imageUrl: 'https://images.unsplash.com/photo-1559496417-e73224229177?w=800&h=600&fit=crop',
         caption: 'Starbucks entered India through a 50:50 joint venture with Tata Global Beverages.',
+        source: 'Starbucks Corporation',
         pageNumber: 21,
   },
   {
@@ -1031,45 +1036,24 @@ const exhibits: Exhibit[] = [
         title: 'Age Distribution of Indian Population',
         type: 'chart',
         description: 'Population pyramid showing India age structure.',
-        chartData: {
-      "chartType": "bar",
-      "labels": [
-        "0-14",
-        "15-24",
-        "25-34",
-        "35-44",
-        "45-54",
-        "55-64",
-        "65+"
+        data: {
+      columns: ["Age Group", "Male (millions)", "Female (millions)"],
+      rows: [
+        { "Age Group": "0-14", "Male (millions)": 200, "Female (millions)": 180 },
+        { "Age Group": "15-24", "Male (millions)": 125, "Female (millions)": 115 },
+        { "Age Group": "25-34", "Male (millions)": 110, "Female (millions)": 100 },
+        { "Age Group": "35-44", "Male (millions)": 90, "Female (millions)": 85 },
+        { "Age Group": "45-54", "Male (millions)": 70, "Female (millions)": 65 },
+        { "Age Group": "55-64", "Male (millions)": 45, "Female (millions)": 42 },
+        { "Age Group": "65+", "Male (millions)": 30, "Female (millions)": 32 }
       ],
-      "series": [
-        {
-          "name": "Male (millions)",
-          "values": [
-            200,
-            125,
-            110,
-            90,
-            70,
-            45,
-            30
-          ]
-        },
-        {
-          "name": "Female (millions)",
-          "values": [
-            180,
-            115,
-            100,
-            85,
-            65,
-            42,
-            32
-          ]
-        }
-      ]
+      chartType: 'bar',
+      xKey: 'Age Group',
+      yKeys: ['Male (millions)', 'Female (millions)'],
+      colors: [STEEL_BLUE, BURGUNDY_LIGHT]
     },
         caption: 'India has a young population, making youth-oriented brands strategically important.',
+        source: 'Census of India 2011, projected',
         pageNumber: 21,
   }
 ];

@@ -8,7 +8,7 @@
 import { useMemo } from 'react';
 import type { ChatSession } from './types';
 import type { PersonaProfile } from '../../personaEngine/types';
-import { getAvatar, getPersonaColors, formatRelativeTime, truncate } from './utils';
+import { getAvatar, getPersonaColors, formatRelativeTime } from './utils';
 import { sortSessionsByActivity } from './utils';
 
 interface ChatHistorySidebarProps {
@@ -86,7 +86,7 @@ export function ChatHistorySidebar({
       {/* Session List */}
       <div className="flex-1 overflow-y-auto" role="listbox" aria-label="Chat sessions">
         {Array.from(sessionsByPersona.entries()).map(([personaId, personaSessions]) => {
-          const persona = personas.find((p) => p.id === personaId);
+          const persona = personas?.find((p) => p.id === personaId);
           if (!persona) return null;
 
           const colors = getPersonaColors(persona);
@@ -110,8 +110,9 @@ export function ChatHistorySidebar({
                   {persona.name}
                 </span>
                 <button
+                  type="button"
                   onClick={() => onNewSession(personaId)}
-                  className="ml-auto p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                  className="ml-auto p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300"
                   aria-label={`New conversation with ${persona.name}`}
                   title="New conversation"
                 >
@@ -127,22 +128,28 @@ export function ChatHistorySidebar({
                 const lastMessageAt = session.lastMessageAt ?? session.createdAt;
 
                 return (
-                  <button
+                  <div
                     key={session.id}
-                    role="option"
+                    role="listitem"
+                    tabIndex={0}
                     aria-selected={isActive}
                     onClick={() => onSelectSession(session.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        onSelectSession(session.id);
+                      }
+                    }}
                     className={`
                       w-full text-left px-4 py-2.5 flex items-center gap-2
-                      transition-colors group
-                      focus:outline-none focus:bg-gray-50
+                      transition-colors cursor-pointer group
                       ${
                         isActive
-                          ? 'bg-gray-50 border-l-2'
-                          : 'hover:bg-gray-50 border-l-2 border-l-transparent'
+                          ? 'bg-gray-50'
+                          : 'hover:bg-gray-50'
                       }
                     `}
-                    style={isActive ? { borderLeftColor: colors.primary } : {}}
+                    style={isActive ? { borderLeft: `3px solid ${colors.primary}`, paddingLeft: '13px' } : {}}
                   >
                     {/* Session Preview */}
                     <div className="flex-1 min-w-0">
@@ -154,13 +161,14 @@ export function ChatHistorySidebar({
                       </p>
                     </div>
 
-                    {/* Delete Button */}
+                    {/* Delete Button — sibling, not nested */}
                     <button
+                      type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         onDeleteSession(session.id);
                       }}
-                      className="p-1 rounded opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all"
+                      className="p-1 rounded opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-red-300"
                       aria-label={`Delete conversation ${session.id.slice(0, 8)}`}
                     >
                       <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
@@ -171,7 +179,7 @@ export function ChatHistorySidebar({
                         />
                       </svg>
                     </button>
-                  </button>
+                  </div>
                 );
               })}
             </div>

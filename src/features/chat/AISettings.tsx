@@ -98,7 +98,7 @@ export function AISettings({ onClose }: AISettingsProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="ai-settings-title"
@@ -113,15 +113,15 @@ export function AISettings({ onClose }: AISettingsProps) {
       {/* Modal */}
       <div
         ref={modalRef}
-        className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden"
+        className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden max-h-[90vh] flex flex-col"
       >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
           <div>
-            <h2 id="ai-settings-title" className="text-lg font-semibold text-gray-900">
+            <h2 id="ai-settings-title" className="text-base sm:text-lg font-semibold text-gray-900">
               AI Configuration
             </h2>
-            <p className="text-sm text-gray-500 mt-0.5">
+            <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
               Choose how the persona responds to your questions
             </p>
           </div>
@@ -137,20 +137,20 @@ export function AISettings({ onClose }: AISettingsProps) {
           </button>
         </div>
 
-        {/* Body */}
-        <div className="px-6 py-5 space-y-5">
+        {/* Body - scrollable on mobile */}
+        <div className="px-4 sm:px-6 py-4 sm:py-5 space-y-4 sm:space-y-5 overflow-y-auto">
           {/* Mode Selection */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Mode
             </label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3">
               {/* Mock Mode Option */}
               <button
                 type="button"
                 onClick={() => setLocalMockMode(true)}
                 className={`
-                  relative p-4 rounded-xl border-2 text-left transition-all
+                  relative p-3 sm:p-4 rounded-xl border-2 text-left transition-all
                   focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-400
                   ${
                     localMockMode
@@ -162,7 +162,7 @@ export function AISettings({ onClose }: AISettingsProps) {
               >
                 {localMockMode && (
                   <div className="absolute top-2 right-2">
-                    <svg className="w-5 h-5 text-indigo-500" viewBox="0 0 20 20" fill="currentColor">
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-500" viewBox="0 0 20 20" fill="currentColor">
                       <path
                         fillRule="evenodd"
                         d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
@@ -182,7 +182,7 @@ export function AISettings({ onClose }: AISettingsProps) {
                 type="button"
                 onClick={() => setLocalMockMode(false)}
                 className={`
-                  relative p-4 rounded-xl border-2 text-left transition-all
+                  relative p-3 sm:p-4 rounded-xl border-2 text-left transition-all
                   focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-400
                   ${
                     !localMockMode
@@ -194,7 +194,7 @@ export function AISettings({ onClose }: AISettingsProps) {
               >
                 {!localMockMode && (
                   <div className="absolute top-2 right-2">
-                    <svg className="w-5 h-5 text-indigo-500" viewBox="0 0 20 20" fill="currentColor">
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-500" viewBox="0 0 20 20" fill="currentColor">
                       <path
                         fillRule="evenodd"
                         d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
@@ -345,18 +345,18 @@ export function AISettings({ onClose }: AISettingsProps) {
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex items-center justify-end gap-3">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-100 bg-gray-50 flex items-center justify-end gap-2 sm:gap-3 flex-shrink-0">
           <button
             type="button"
             onClick={handleDiscard}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 transition-colors"
+            className="px-3 sm:px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 transition-colors"
           >
             Discard
           </button>
           <button
             type="button"
             onClick={handleSave}
-            className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 transition-colors"
+            className="px-3 sm:px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 transition-colors"
           >
             {saved ? 'Saved!' : 'Save'}
           </button>

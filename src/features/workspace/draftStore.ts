@@ -7,7 +7,7 @@
  * - Show last saved timestamp
  * - Word count calculation
  * - Reading time estimate (~200 words per minute)
- * - Offline save queue
+ * - localStorage persistence (fully offline)
  */
 
 import { create } from 'zustand';
@@ -24,68 +24,14 @@ import {
   exportAsHtml,
   exportAsPdf,
 } from './exportUtils';
+import { getDefaultStorageProvider, DEMO_USER_ID } from '../../lib/localStorageProvider';
+import { generateId } from '../../lib/idUtils';
 
-// ─── API Layer ──────────────────────────────────────────────────
+// ─── Storage Provider (singleton) ─────────────────────────────────
 
-const API_BASE = '/api';
+const storage = getDefaultStorageProvider();
 
-async function fetchDraft(caseId: string): Promise<Draft | null> {
-  const res = await fetch(`${API_BASE}/cases/${encodeURIComponent(caseId)}/draft`);
-  if (!res.ok) return null;
-  const data: { draft?: { id: string; user_id: string; case_id: string; content: string; word_count: number; created_at: number; updated_at: number } | null } = await res.json();
-  if (!data.draft) return null;
-
-  // Map backend Draft to workspace Draft
-  const backend = data.draft;
-  return {
-    id: backend.id,
-    userId: backend.user_id,
-    caseId: backend.case_id,
-    title: extractTitle(backend.content),
-    content: backend.content,
-    wordCount: backend.word_count,
-    createdAt: backend.created_at,
-    updatedAt: backend.updated_at,
-  };
-}
-
-async function saveDraftApi(caseId: string, content: string, wordCount: number): Promise<Draft | null> {
-  const res = await fetch(`${API_BASE}/cases/${encodeURIComponent(caseId)}/draft`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ content, word_count: wordCount }),
-  });
-  if (!res.ok) return null;
-  const data: { draft?: { id: string; user_id: string; case_id: string; content: string; word_count: number; created_at: number; updated_at: number } | null } = await res.json();
-  if (!data.draft) return null;
-
-  const backend = data.draft;
-  return {
-    id: backend.id,
-    userId: backend.user_id,
-    caseId: backend.case_id,
-    title: extractTitle(backend.content),
-    content: backend.content,
-    wordCount: backend.word_count,
-    createdAt: backend.created_at,
-    updatedAt: backend.updated_at,
-  };
-}
-
-/**
- * Extract a title from HTML content (first h1 or h2 text).
- */
-function extractTitle(html: string): string {
-  const h1Match = html.match(/<h1[^>]*>([^<]+)<\/h1>/i);
-  if (h1Match) return h1Match[1];
-  const h2Match = html.match(/<h2[^>]*>([^<]+)<\/h2>/i);
-  if (h2Match) return h2Match[1];
-  // Fallback: first 50 chars of text
-  const textMatch = html.replace(/<[^>]+>/g, '').trim();
-  return textMatch.slice(0, 50) || 'Untitled Draft';
-}
-
-// ─── Word Count Utilities ───────────────────────────────────────
+// ─── Word Count Utilities ─────────────────────────────────────────
 
 /**
  * Count words in HTML content by stripping tags and counting whitespace-separated tokens.
@@ -104,7 +50,7 @@ export function estimateReadingTime(wordCount: number): number {
   return Math.max(1, Math.ceil(wordCount / 200));
 }
 
-// ─── Store State ────────────────────────────────────────────────
+// ─── Store State ──────────────────────────────────────────────────
 
 interface DraftState {
   // ── Data ──
@@ -134,7 +80,7 @@ interface DraftState {
   flushOfflineQueue: () => Promise<void>;
 }
 
-// ─── Store ──────────────────────────────────────────────────────
+// ─── Store ────────────────────────────────────────────────────────
 
 export const useDraftStore = create<DraftState>((set, get) => ({
   // ── Initial State ──
@@ -152,11 +98,27 @@ export const useDraftStore = create<DraftState>((set, get) => ({
   loadDraft: async (caseId: string) => {
     set({ isLoading: true, currentCaseId: caseId });
     try {
-      const draft = await fetchDraft(caseId);
+      const backendDraft = await storage.getDraft(DEMO_USER_ID, caseId);
+      if (!backendDraft) {
+        set({ isLoading: false, draft: null });
+        return;
+      }
+
+      const draft: Draft = {
+        id: backendDraft.id,
+        userId: backendDraft.user_id,
+        caseId: backendDraft.case_id,
+        title: extractTitle(backendDraft.content),
+        content: backendDraft.content,
+        wordCount: backendDraft.word_count,
+        createdAt: backendDraft.created_at,
+        updatedAt: backendDraft.updated_at,
+      };
+
       set({
         draft,
         isLoading: false,
-        lastSavedAt: draft?.updatedAt ?? null,
+        lastSavedAt: draft.updatedAt,
         hasUnsavedChanges: false,
       });
     } catch {
@@ -167,38 +129,51 @@ export const useDraftStore = create<DraftState>((set, get) => ({
   // ── Save Draft (with autosave debounce) ──
   saveDraft: async (content: string, title: string) => {
     const { currentCaseId, draft, settings } = get();
-    if (!currentCaseId || !settings.autoSave) return;
+    if (!currentCaseId) return;
 
     // If content hasn't changed, skip
     const currentContent = draft?.content ?? '';
     if (currentContent === content) return;
 
     const wordCount = countWords(content);
+    const now = Date.now();
 
     // Mark as saving
     set({ isSaving: true });
 
     try {
-      const saved = await saveDraftApi(currentCaseId, content, wordCount);
-      if (saved) {
-        set({
-          draft: { ...draft!, content, title, wordCount, updatedAt: saved.updatedAt },
-          isSaving: false,
-          lastSavedAt: Date.now(),
-          hasUnsavedChanges: false,
-        });
-      } else {
-        // Save failed — queue for retry
-        set((state) => ({
-          isSaving: false,
-          offlineQueue: [
-            ...state.offlineQueue,
-            { content, title },
-          ],
-        }));
-      }
+      const draftId = draft?.id || generateId();
+      const backendDraft = {
+        id: draftId,
+        user_id: DEMO_USER_ID,
+        case_id: currentCaseId,
+        content,
+        word_count: wordCount,
+        created_at: draft?.createdAt ?? now,
+        updated_at: now,
+      };
+
+      const saved = await storage.saveDraft(backendDraft);
+
+      const updatedDraft: Draft = {
+        id: saved.id,
+        userId: saved.user_id,
+        caseId: saved.case_id,
+        title,
+        content: saved.content,
+        wordCount: saved.word_count,
+        createdAt: saved.created_at,
+        updatedAt: saved.updated_at,
+      };
+
+      set({
+        draft: updatedDraft,
+        isSaving: false,
+        lastSavedAt: updatedDraft.updatedAt,
+        hasUnsavedChanges: false,
+      });
     } catch {
-      // Network error — queue for retry
+      // Save failed — queue for retry
       set((state) => ({
         isSaving: false,
         offlineQueue: [
@@ -277,8 +252,8 @@ export const useDraftStore = create<DraftState>((set, get) => ({
       const now = Date.now();
       const wordCount = countWords(htmlStructure);
       const newDraft: Draft = {
-        id: crypto.randomUUID(),
-        userId: '', // Will be set by backend
+        id: generateId(),
+        userId: DEMO_USER_ID,
         caseId: currentCaseId,
         title: templateData.title,
         content: htmlStructure,
@@ -355,22 +330,52 @@ export const useDraftStore = create<DraftState>((set, get) => ({
     const wordCount = countWords(latest.content);
 
     try {
-      const saved = await saveDraftApi(currentCaseId, latest.content, wordCount);
-      if (saved) {
-        set({
-          draft: draft ? { ...draft, content: latest.content, title: latest.title, updatedAt: saved.updatedAt } : null,
-          lastSavedAt: Date.now(),
-          hasUnsavedChanges: false,
-          offlineQueue: [],
-        });
-      }
+      const draftId = draft?.id || generateId();
+      const backendDraft = {
+        id: draftId,
+        user_id: DEMO_USER_ID,
+        case_id: currentCaseId,
+        content: latest.content,
+        word_count: wordCount,
+        created_at: draft?.createdAt ?? Date.now(),
+        updated_at: Date.now(),
+      };
+
+      const saved = await storage.saveDraft(backendDraft);
+
+      set({
+        draft: draft
+          ? {
+              ...draft,
+              content: latest.content,
+              title: latest.title,
+              updatedAt: saved.updated_at,
+            }
+          : null,
+        lastSavedAt: Date.now(),
+        hasUnsavedChanges: false,
+        offlineQueue: [],
+      });
     } catch {
       // Keep queue for next retry
     }
   },
 }));
 
-// ─── Helpers ────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────
+
+/**
+ * Extract a title from HTML content (first h1 or h2 text).
+ */
+function extractTitle(html: string): string {
+  const h1Match = html.match(/<h1[^>]*>([^<]+)<\/h1>/i);
+  if (h1Match) return h1Match[1];
+  const h2Match = html.match(/<h2[^>]*>([^<]+)<\/h2>/i);
+  if (h2Match) return h2Match[1];
+  // Fallback: first 50 chars of text
+  const textMatch = html.replace(/<[^>]+>/g, '').trim();
+  return textMatch.slice(0, 50) || 'Untitled Draft';
+}
 
 /**
  * Simple markdown-to-HTML converter for template structures.

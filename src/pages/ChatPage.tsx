@@ -2,7 +2,7 @@
 // MBA Case Study Platform — Chat Page
 // ============================================================================
 // Persona chat interface with character selection.
-// In mock mode, sessions are managed client-side without a backend.
+// In mock mode, sessions and messages are persisted to localStorage.
 // ============================================================================
 
 import React, { useEffect, useCallback, useMemo } from 'react';
@@ -14,6 +14,8 @@ import { useAIConfigStore } from '../features/chat/aiConfigStore';
 import type { ChatSession } from '../features/chat/types';
 import { coffeeWarsCase } from '../ingestion/sampleCaseData';
 
+const CASE_ID = 'coffee-wars-india';
+
 export function ChatPage() {
   const store = useChatStore();
   const aiConfig = useAIConfigStore((s) => s.config);
@@ -24,16 +26,14 @@ export function ChatPage() {
     store.setPersonas(personas);
   }, [personas]);
 
-  // Load sessions from backend only in real mode
+  // Load sessions from localStorage on mount (works in both mock and real mode)
   useEffect(() => {
-    if (!isMockMode) {
-      store.loadSessions('coffee-wars-india');
-    }
-  }, [isMockMode]);
+    store.loadSessions(CASE_ID);
+  }, []);
 
   // ── Mock Mode Session Management ─────────────────────────────────
 
-  // In mock mode, create sessions client-side
+  // In mock mode, create sessions client-side and persist to localStorage
   const handleSelectPersona = useCallback(
     (personaId: string) => {
       if (isMockMode) {
@@ -46,26 +46,10 @@ export function ChatPage() {
           return;
         }
 
-        // Create a client-side session
-        const mockSession: ChatSession = {
-          id: `mock-${personaId}-${Date.now()}`,
-          userId: 'mock-user',
-          caseId: 'coffee-wars-india',
-          personaId,
-          createdAt: Date.now(),
-        };
-
-        // Create via store action
-        useChatStore.setState((state) => ({
-          sessions: [...state.sessions, mockSession],
-          activeSessionId: mockSession.id,
-          messages: { ...state.messages, [mockSession.id]: [] },
-        }));
-
-        // Load suggested questions
-        store.loadSuggestedQuestions(personaId);
+        // Create a new session via the store (persists to localStorage)
+        store.createSession(CASE_ID, personaId);
       } else {
-        store.createSession('coffee-wars-india', personaId);
+        store.createSession(CASE_ID, personaId);
       }
     },
     [isMockMode, store]
