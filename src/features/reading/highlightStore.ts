@@ -1,88 +1,90 @@
 // ============================================================================
 // MBA Case Study Platform — Highlight Store
 // ============================================================================
-// Zustand store for managing highlights with server sync.
+// Zustand store for managing highlights with localStorage persistence.
 // Handles loading, creating, updating, and deleting highlights.
+// Data persists across page reloads via localStorage.
 // ============================================================================
 
 import { create } from 'zustand';
 import type {
   Highlight,
   HighlightColor,
-  ApiHighlight,
+  SerializedRange,
 } from './types';
-import { DEFAULT_HIGHLIGHT_COLOR, apiHighlightToDomain, highlightToApiPayload } from './types';
+import { DEFAULT_HIGHLIGHT_COLOR } from './types';
+import { getDefaultStorageProvider, DEMO_USER_ID } from '../../lib/localStorageProvider';
+import { generateId } from '../../lib/idUtils';
 
 // ---------------------------------------------------------------------------
-// API Client (abstracted for testability)
+// Backend ↔ Domain Type Mapping
 // ---------------------------------------------------------------------------
 
 /**
- * API client interface for highlight operations.
- * Replace the implementation with your actual API calls.
+ * Map backend Highlight (snake_case) to domain Highlight (camelCase).
  */
-interface HighlightApiClient {
-  getHighlights(caseId: string): Promise<ApiHighlight[]>;
-  createHighlight(caseId: string, payload: {
-    chunk_id: string;
-    text_content: string;
-    color: string;
-    anchor_start: string;
-    anchor_end: string;
-  }): Promise<ApiHighlight>;
-  updateHighlight(caseId: string, id: string, updates: Partial<ApiHighlight>): Promise<ApiHighlight>;
-  deleteHighlight(caseId: string, id: string): Promise<void>;
+function backendToDomain(h: {
+  id: string;
+  user_id: string;
+  case_id: string;
+  chunk_id: string;
+  text_content: string;
+  color: string;
+  anchor_start: string;
+  anchor_end: string;
+  created_at: number;
+  updated_at: number;
+}): Highlight {
+  return {
+    id: h.id,
+    userId: h.user_id,
+    caseId: h.case_id,
+    chunkId: h.chunk_id,
+    textContent: h.text_content,
+    color: (h.color as HighlightColor) || DEFAULT_HIGHLIGHT_COLOR,
+    anchorStart: parseSerializedRange(h.anchor_start),
+    anchorEnd: parseSerializedRange(h.anchor_end),
+    createdAt: h.created_at,
+    updatedAt: h.updated_at,
+  };
 }
 
 /**
- * Default API client using fetch.
- * Replace BASE_URL with your actual API endpoint.
+ * Map domain Highlight to backend shape for storage.
  */
-const BASE_URL = '/api';
+function domainToBackend(h: Highlight): {
+  id: string;
+  user_id: string;
+  case_id: string;
+  chunk_id: string;
+  text_content: string;
+  color: string;
+  anchor_start: string;
+  anchor_end: string;
+  created_at: number;
+  updated_at: number;
+} {
+  return {
+    id: h.id,
+    user_id: h.userId,
+    case_id: h.caseId,
+    chunk_id: h.chunkId,
+    text_content: h.textContent,
+    color: h.color,
+    anchor_start: JSON.stringify(h.anchorStart),
+    anchor_end: JSON.stringify(h.anchorEnd),
+    created_at: h.createdAt,
+    updated_at: h.updatedAt,
+  };
+}
 
-const defaultApiClient: HighlightApiClient = {
-  async getHighlights(caseId: string): Promise<ApiHighlight[]> {
-    const res = await fetch(`${BASE_URL}/cases/${encodeURIComponent(caseId)}/highlights`);
-    if (!res.ok) throw new Error(`Failed to fetch highlights: ${res.status}`);
-    const data = await res.json() as { highlights?: ApiHighlight[] };
-    return data.highlights || [];
-  },
-
-  async createHighlight(caseId: string, payload: {
-    chunk_id: string;
-    text_content: string;
-    color: string;
-    anchor_start: string;
-    anchor_end: string;
-  }): Promise<ApiHighlight> {
-    const res = await fetch(`${BASE_URL}/cases/${encodeURIComponent(caseId)}/highlights`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) throw new Error(`Failed to create highlight: ${res.status}`);
-    const data = await res.json() as { highlight: ApiHighlight };
-    return data.highlight;
-  },
-
-  async updateHighlight(caseId: string, id: string, updates: Partial<ApiHighlight>): Promise<ApiHighlight> {
-    const res = await fetch(`${BASE_URL}/cases/${encodeURIComponent(caseId)}/highlights/${encodeURIComponent(id)}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updates),
-    });
-    if (!res.ok) throw new Error(`Failed to update highlight: ${res.status}`);
-    const data = await res.json() as { highlight: ApiHighlight };
-    return data.highlight;
-  },
-
-  async deleteHighlight(caseId: string, id: string): Promise<void> {
-    const res = await fetch(`${BASE_URL}/cases/${encodeURIComponent(caseId)}/highlights/${encodeURIComponent(id)}`, {
-      method: 'DELETE',
-    });
-    if (!res.ok) throw new Error(`Failed to delete highlight: ${res.status}`);
-  },
-};
+function parseSerializedRange(raw: string): SerializedRange {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return { textQuote: '', prefix: '', suffix: '', offset: 0 };
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Store Definition
@@ -105,10 +107,13 @@ interface HighlightState {
   getHighlightsForChunk: (chunkId: string) => Highlight[];
   getHighlightsByColor: (color: HighlightColor) => Highlight[];
   clearHighlights: () => void;
-
-  // ── Internal ──────────────────────────────────────────────────
-  _setApiClient: (client: HighlightApiClient) => void;
 }
+
+// ---------------------------------------------------------------------------
+// Storage Provider (singleton — shared across all store instances)
+// ---------------------------------------------------------------------------
+
+const storage = getDefaultStorageProvider();
 
 // ---------------------------------------------------------------------------
 // Store Creation
@@ -122,19 +127,12 @@ export const useHighlightStore = create<HighlightState>((set, get) => ({
   isLoading: false,
   error: null,
 
-  // ── API Client (mutable for testing) ──────────────────────────
-  _setApiClient: (client: HighlightApiClient) => {
-    // Store client on the state object for use in actions
-    Object.assign(get(), { _apiClient: client });
-  },
-
   // ── Load Highlights ───────────────────────────────────────────
   loadHighlights: async (caseId: string) => {
     set({ isLoading: true, error: null, currentCaseId: caseId });
     try {
-      const api = (get() as HighlightState & { _apiClient?: HighlightApiClient })._apiClient ?? defaultApiClient;
-      const apiHighlights = await api.getHighlights(caseId);
-      const highlights = apiHighlights.map(apiHighlightToDomain);
+      const backendHighlights = await storage.getHighlights(DEMO_USER_ID, caseId);
+      const highlights = backendHighlights.map(backendToDomain);
       set({ highlights, isLoading: false });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load highlights';
@@ -150,12 +148,23 @@ export const useHighlightStore = create<HighlightState>((set, get) => ({
       throw new Error('No case loaded. Call loadHighlights first.');
     }
 
-    const api = (get() as HighlightState & { _apiClient?: HighlightApiClient })._apiClient ?? defaultApiClient;
-    const payload = highlightToApiPayload(highlight);
+    const now = Date.now();
+    const backendHighlight = domainToBackend({
+      id: generateId(),
+      userId: DEMO_USER_ID,
+      caseId: currentCaseId,
+      chunkId: highlight.chunkId,
+      textContent: highlight.textContent,
+      color: highlight.color,
+      anchorStart: highlight.anchorStart,
+      anchorEnd: highlight.anchorEnd,
+      createdAt: now,
+      updatedAt: now,
+    });
 
     try {
-      const apiHighlight = await api.createHighlight(currentCaseId, payload);
-      const domainHighlight = apiHighlightToDomain(apiHighlight);
+      const saved = await storage.createHighlight(backendHighlight);
+      const domainHighlight = backendToDomain(saved);
       set((state) => ({
         highlights: [...state.highlights, domainHighlight],
       }));
@@ -174,18 +183,21 @@ export const useHighlightStore = create<HighlightState>((set, get) => ({
       throw new Error('No case loaded.');
     }
 
-    const api = (get() as HighlightState & { _apiClient?: HighlightApiClient })._apiClient ?? defaultApiClient;
-
-    // Convert domain updates to API format
-    const apiUpdates: Partial<ApiHighlight> = {};
-    if (updates.color) apiUpdates.color = updates.color;
-    if (updates.textContent) apiUpdates.text_content = updates.textContent;
-    if (updates.anchorStart) apiUpdates.anchor_start = JSON.stringify(updates.anchorStart);
-    if (updates.anchorEnd) apiUpdates.anchor_end = JSON.stringify(updates.anchorEnd);
+    // Convert domain updates to backend format
+    const backendUpdates: Partial<{
+      color: string;
+      text_content: string;
+      anchor_start: string;
+      anchor_end: string;
+    }> = {};
+    if (updates.color) backendUpdates.color = updates.color;
+    if (updates.textContent) backendUpdates.text_content = updates.textContent;
+    if (updates.anchorStart) backendUpdates.anchor_start = JSON.stringify(updates.anchorStart);
+    if (updates.anchorEnd) backendUpdates.anchor_end = JSON.stringify(updates.anchorEnd);
 
     try {
-      const apiHighlight = await api.updateHighlight(currentCaseId, id, apiUpdates);
-      const domainHighlight = apiHighlightToDomain(apiHighlight);
+      const updatedBackend = await storage.updateHighlight(id, DEMO_USER_ID, backendUpdates);
+      const domainHighlight = backendToDomain(updatedBackend);
       set((state) => ({
         highlights: state.highlights.map((h) => (h.id === id ? domainHighlight : h)),
       }));
@@ -204,10 +216,8 @@ export const useHighlightStore = create<HighlightState>((set, get) => ({
       throw new Error('No case loaded.');
     }
 
-    const api = (get() as HighlightState & { _apiClient?: HighlightApiClient })._apiClient ?? defaultApiClient;
-
     try {
-      await api.deleteHighlight(currentCaseId, id);
+      await storage.deleteHighlight(id, DEMO_USER_ID);
       set((state) => ({
         highlights: state.highlights.filter((h) => h.id !== id),
       }));
