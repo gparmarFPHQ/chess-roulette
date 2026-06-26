@@ -172,9 +172,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
         }));
       }
 
-      // If we have an active session, ensure it's still valid
+      // Restore active session: use current if valid, otherwise most recent
       const { activeSessionId } = get();
-      if (activeSessionId && !sessions.find((s) => s.id === activeSessionId)) {
+      const hasValidActive = activeSessionId && sessions.find((s) => s.id === activeSessionId);
+      if (!hasValidActive && sessions.length > 0) {
+        // Pick the session with the most recent message, or the last session
+        const mostRecent = sessions
+          .map((s) => ({ s, lastMsg: get().messages[s.id]?.at(-1)?.createdAt || s.createdAt }))
+          .sort((a, b) => b.lastMsg - a.lastMsg)[0];
+        set({ activeSessionId: mostRecent.s.id });
+      } else if (activeSessionId && !sessions.find((s) => s.id === activeSessionId)) {
         set({ activeSessionId: null });
       }
     } catch (err) {
