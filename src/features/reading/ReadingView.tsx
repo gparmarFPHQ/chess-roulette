@@ -15,18 +15,22 @@ import { TableOfContents } from './TableOfContents';
 import { ProgressIndicator } from './ProgressIndicator';
 import { serializeRange } from './rangeUtils';
 import { Highlight, Note, HighlightColor } from './types';
+import { X } from 'lucide-react';
 
 interface ReadingViewProps {
   caseId: string;
   chunks: CaseChunk[];
+  showTOC?: boolean;
+  showHighlights?: boolean;
+  onCloseTOC?: () => void;
+  onCloseHighlights?: () => void;
 }
 
-export function ReadingView({ caseId, chunks }: ReadingViewProps) {
+export function ReadingView({ caseId, chunks, showTOC, showHighlights, onCloseTOC, onCloseHighlights }: ReadingViewProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const [selectedText, setSelectedText] = useState<string | null>(null);
   const [toolbarPosition, setToolbarPosition] = useState<{ top: number; left: number } | null>(null);
   const [activeSection, setActiveSection] = useState<string>('');
-  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const highlightStore = useHighlightStore();
   const noteStore = useNoteStore();
@@ -167,9 +171,31 @@ export function ReadingView({ caseId, chunks }: ReadingViewProps) {
   };
 
   return (
-    <div className="flex h-screen bg-cream-50">
+    <div className="flex flex-1 overflow-hidden bg-cream-50">
       {/* Left Sidebar - Table of Contents */}
-      <aside className="w-64 border-r border-slate-200 bg-white overflow-y-auto hidden lg:block">
+      {/* Desktop: always visible on lg+ | Mobile: overlay when showTOC */}
+      {showTOC && (
+        <div className="fixed inset-0 z-40 lg:hidden" onClick={() => onCloseTOC?.()}>
+          <div className="absolute inset-0 bg-black/30" />
+        </div>
+      )}
+      <aside
+        className={`
+          w-64 border-r border-slate-200 bg-white overflow-y-auto flex-shrink-0
+          ${showTOC ? 'fixed inset-y-0 left-0 z-50 transform transition-transform lg:translate-x-0 lg:static lg:z-auto' : 'hidden lg:block'}
+          ${showTOC ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        `}
+      >
+        <div className="flex items-center justify-between p-4 border-b border-slate-200 lg:hidden">
+          <h2 className="font-semibold text-slate-900">Contents</h2>
+          <button
+            onClick={() => onCloseTOC?.()}
+            className="p-1.5 rounded-md text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+            aria-label="Close table of contents"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
         <TableOfContents
           sections={sections}
           activeSection={activeSection}
@@ -179,14 +205,18 @@ export function ReadingView({ caseId, chunks }: ReadingViewProps) {
               el.scrollIntoView({ behavior: 'smooth' });
               setActiveSection(sectionId);
             }
+            // Close TOC on mobile after selection
+            if (window.innerWidth < 1024) {
+              onCloseTOC?.();
+            }
           }}
         />
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto min-w-0">
         {/* Progress Indicator */}
-        <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b border-slate-200 px-8 py-3">
+        <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b border-slate-200 px-4 sm:px-8 py-3">
           <ProgressIndicator
             currentChunk={progress.currentChunkIndex + 1}
             totalChunks={progress.totalChunks}
@@ -196,7 +226,7 @@ export function ReadingView({ caseId, chunks }: ReadingViewProps) {
         {/* Reading Content */}
         <div
           ref={contentRef}
-          className="max-w-3xl mx-auto px-8 py-12 prose prose-slate prose-lg
+          className="max-w-3xl mx-auto px-4 sm:px-8 py-6 sm:py-12 prose prose-slate prose-lg
             prose-headings:font-serif prose-headings:font-semibold
             prose-p:font-serif prose-p:text-slate-800 prose-p:leading-relaxed
             prose-a:text-burgundy-700 prose-a:no-underline hover:prose-a:underline
@@ -245,15 +275,35 @@ export function ReadingView({ caseId, chunks }: ReadingViewProps) {
       </main>
 
       {/* Right Sidebar - Highlights */}
-      {sidebarOpen && (
-        <aside className="w-80 border-l border-slate-200 bg-white overflow-y-auto hidden xl:block">
-          <HighlightsSidebar
-            highlights={highlightStore.highlights}
-            onHighlightClick={handleScrollToHighlight}
-            onHighlightDelete={(id: string) => highlightStore.deleteHighlight(id)}
-          />
-        </aside>
+      {/* Desktop: always visible on xl+ | Mobile: overlay when showHighlights */}
+      {showHighlights && (
+        <div className="fixed inset-0 z-40 xl:hidden" onClick={() => onCloseHighlights?.()}>
+          <div className="absolute inset-0 bg-black/30" />
+        </div>
       )}
+      <aside
+        className={`
+          w-80 border-l border-slate-200 bg-white overflow-y-auto flex-shrink-0
+          ${showHighlights ? 'fixed inset-y-0 right-0 z-50 transform transition-transform xl:translate-x-0 xl:static xl:z-auto' : 'hidden xl:block'}
+          ${showHighlights ? 'translate-x-0' : 'translate-x-full xl:translate-x-0'}
+        `}
+      >
+        <div className="flex items-center justify-between p-4 border-b border-slate-200 xl:hidden">
+          <h2 className="font-semibold text-slate-900">Highlights</h2>
+          <button
+            onClick={() => onCloseHighlights?.()}
+            className="p-1.5 rounded-md text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+            aria-label="Close highlights"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <HighlightsSidebar
+          highlights={highlightStore.highlights}
+          onHighlightClick={handleScrollToHighlight}
+          onHighlightDelete={(id: string) => highlightStore.deleteHighlight(id)}
+        />
+      </aside>
 
       {/* Highlight Toolbar (appears on text selection) */}
       {toolbarPosition && selectedText && (
